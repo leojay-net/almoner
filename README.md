@@ -90,14 +90,32 @@ Reported upstream in
 
 ## Development
 
-Requires Node 24+, and [Scarb](https://docs.swmansion.com/scarb/) + starkli for the
-Cairo side.
+npm workspaces. Requires Node 20.9+, and [Scarb](https://docs.swmansion.com/scarb/)
+plus starkli for the Cairo side.
+
+```
+apps/web                      Next.js 16 dapp (App Router, Tailwind 4)
+packages/strk20-capability    wallet STRK20 support detection, publishable
+```
 
 ```bash
 npm install
-cp .env.example .env.local   # add your own Starknet RPC key; never commit it
+cp apps/web/.env.example apps/web/.env.local   # add your Alchemy key; never commit it
 npm run dev
 ```
+
+```bash
+npm test        # unit tests
+npm run lint
+npm run typecheck
+npm run build
+```
+
+**The `starknet` version is pinned deliberately.** STRK20 support ships on the npm
+`next` tag; `latest` resolved to `10.0.2` on 21 Aug 2026 and contains none of
+`WalletAccountV6`, `strk20InvokeTransaction` or `STRK20_ACTION`. The pinned set is
+`starknet@10.4.0` with `@starknet-io/*` at the versions the official integration skill
+tested together.
 
 Mainnet configuration is `CHAIN_ID=SN_MAIN` against the pool address above. RPC keys
 live in environment variables only.
