@@ -32,6 +32,15 @@ export {
 } from "./actions.js";
 
 export {
+  parseDecimalAmount,
+  parseRecipients,
+  type ParseOptions,
+  type ParseResult,
+  type ParsedRecipient,
+  type RecipientParseError,
+} from "./recipients.js";
+
+export {
   decodeClaimLink,
   encodeClaimLink,
   type ClaimLinkPayload,
