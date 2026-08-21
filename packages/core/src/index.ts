@@ -32,6 +32,12 @@ export {
 } from "./actions.js";
 
 export {
+  decodeClaimLink,
+  encodeClaimLink,
+  type ClaimLinkPayload,
+} from "./claim-link.js";
+
+export {
   POOL_ADDRESS_PLACEHOLDER,
   openNoteIdPlaceholder,
   type CalldataItem,
