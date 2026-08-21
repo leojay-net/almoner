@@ -61,8 +61,13 @@ official skill says to use a version query instead, which is what we implemented
   an unregistered one returns 0
 - **Pool deploy block found: 8,978,970** (binary search on `getClassHashAt`, 24 calls).
   Scanning from block 0 pages through ~9M empty blocks and never returns
-- Verification totals: **91 tests green** (47 core + 17 capability + 27 Cairo),
-  typecheck and lint clean, 0 vulnerabilities
+- **C5 built**: `apps/keeper` — unattended tracker and expiry sweeper. Event scan
+  with a 32-block reorg buffer, atomic state persistence, on-chain re-verification
+  before spending gas, chunked `refund_batch`, dry-run and single-pass modes
+- **Keeper verified against live mainnet**: scanned ~12,800 blocks, persisted its
+  cursor, and a second run resumed at the next block instead of rescanning
+- Verification totals: **116 tests green** (47 core + 25 keeper + 17 capability +
+  27 Cairo), typecheck and lint clean, 0 vulnerabilities, no secrets in git
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
 - **Registered.** [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
@@ -79,6 +84,8 @@ official skill says to use a version query instead, which is what we implemented
 - P3. Done — batch builder and payer UI both built, unproven against a real wallet
 - P4. Claim page done, but end-to-end unproven: it needs a deployed escrow and a
   STRK20-capable wallet, so it currently renders the pre-deploy state
+- P5. Done — keeper built and smoke-tested; it has never swept a real allocation
+  because none exist yet
 
 ### Next (P1, by 23 Aug)
 - [x] Build the wallet capability probe (C6)
@@ -97,6 +104,8 @@ get done first, not last.
 | --- | --- | --- |
 | 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
 | 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 22 Aug | Keeper decides against **chain time**, with a grace period | The contract compares expiry to the block timestamp. Deciding on wall clock would submit refunds a moment early, which revert and waste gas |
+| 22 Aug | Keeper **re-reads each allocation on-chain** before refunding | Local state goes stale when a recipient claims mid-cycle, and `refund_batch` reverts wholesale — so an unverified chunk is wasted gas |
 | 21 Aug | Funding is **gated on exporting the claim links** | Secrets exist only in the payer's browser tab. Funding without saving them strands every escrowed payment until the refund window — so the Fund button stays disabled until the CSV is downloaded |
 | 21 Aug | An **undetermined** registration is treated as unregistered | Escrow works for everyone; a direct transfer to an unregistered recipient reverts, and the batch is atomic, so that mistake would take the whole run down |
 | 21 Aug | Claim secrets ride in the **URL fragment**, never the path or query | Browsers never transmit the fragment. A bearer secret in the query would be written to server logs, proxy logs and `Referer` headers, from where anyone with log access could drain the allocation |
