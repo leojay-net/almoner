@@ -1,0 +1,22 @@
+{
+  "name": "@almoner/keeper",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unattended keeper: tracks escrow allocations and sweeps expired ones back to their payer. Needs no proving service.",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-strip-types src/index.ts",
+    "sweep:once": "node --experimental-strip-types src/index.ts --once",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "starknet": "10.4.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
