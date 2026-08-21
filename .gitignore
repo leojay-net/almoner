@@ -1,0 +1,23 @@
+# Agent skill payloads - regenerate with `npx skills add welttowelt/strk20-skills`
+.agents/
+.claude/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+
+# Cairo / Scarb
+target/
+
+# Environment - NEVER commit RPC keys or private keys
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+*.log
