@@ -39,6 +39,10 @@ official skill says to use a version query instead, which is what we implemented
 - **C6 built**: `packages/strk20-capability` — STRK20 wallet support detection via
   version query, 17 unit tests, publishable, documented
 - Landing page renders the capability panel
+- **C1 drafted**: `contracts/` Cairo escrow anonymizer — batch funding, commitment
+  claims, expiry refunds. Compiles against the real `privacy` package (git dep),
+  **26 snforge tests passing**. Toolchain pinned to scarb 2.18.0 / snforge 0.63.0 to
+  match the privacy monorepo. **Draft: unreviewed, unaudited, not deployed**
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
 - **Registered.** [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
@@ -51,6 +55,7 @@ official skill says to use a version query instead, which is what we implemented
 
 ### In progress
 - P1. Capability tooling is built but **not yet validated against a real wallet**
+- P2. Escrow contract drafted and tested locally; needs security review, then Sepolia
 
 ### Next (P1, by 23 Aug)
 - [x] Build the wallet capability probe (C6)
@@ -67,6 +72,9 @@ get done first, not last.
 
 | Date | Decision | Why |
 | --- | --- | --- |
+| 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
+| 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 21 Aug | Capability detection uses a **version query**, not `strk20Balances` | The Day-0 doc suggests probing with the balance call; the official skill says not to, because it prompts the user for balance access a capability check has no reason to see |
 | 21 Aug | Build private **batch disbursement**, not collection | Verified: the 6 STRK fee is per transaction. Batching amortizes it for payouts; collection pays it per customer. The pool's economics pick a side and we build on it |
 | 21 Aug | **Wallet API route**, not the SDK route | No public mainnet proving service exists; server-held keys cannot prove on mainnet. Wallets ship a prover endpoint we do not have |
 | 21 Aug | Automation split at the **proof boundary** | Every pool write needs a proof, so the server automates everything except value entering the pool. One signature per funding, not per payment |
@@ -83,6 +91,8 @@ get done first, not last.
 | B3 | Max recipients per batch before proof-size limits | Unknown. Docs give no number. Measure in P3 and publish it |
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
+| B6 | Escrow contract has had **no human security review**. It holds real funds | Open — gate before any deploy. Checklist in `contracts/README.md` |
+| B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | Open — settle with `strk20PrepareInvoke(actions, true)` dry run |
 
 ## Key identifiers
 
