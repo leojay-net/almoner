@@ -86,7 +86,7 @@ published documentation is inaccurate on all three.
 | Proof-free writes | **None exist.** `validate_proof` asserts `!proof_facts_span.is_empty()` on every call, including registration and deposits | registration and shielding "need no proof at all" |
 
 Reported upstream in
-[starkience/strk20-hackathon#151](https://github.com/starkience/strk20-hackathon/issues/151).
+[starkience/strk20-hackathon#156](https://github.com/starkience/strk20-hackathon/issues/156).
 
 ## Development
 
