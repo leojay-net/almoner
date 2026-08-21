@@ -1,0 +1,30 @@
+{
+  "name": "@almoner/core",
+  "version": "0.1.0",
+  "description": "Plan and encode STRK20 batch disbursements: commitments, claim links, and the wallet actions that fund and redeem them.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "starknet": ">=10.4.0"
+  },
+  "devDependencies": {
+    "@starknet-io/types-js": "0.10.3",
+    "starknet": "10.4.0",
+    "typescript": "^5",
+    "vitest": "^3.2.4"
+  }
+}
