@@ -30,8 +30,13 @@ Reference: PugarHuda's ~20-line MIT probe, linked from
 - Repository initialised: README, LICENSE (MIT), `strk20.json`, `CLAUDE.md`, plan and state
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
+- Registration PR opened: [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
+  (10-line append, zero deletions, all 115 prior entries byte-identical)
+- GitHub repository published at https://github.com/leojay-net/almoner
+
 ### In progress
-- Registration PR against `starkience/strk20-hackathon` `registry.json`
+- Waiting on the registry `apply` check to auto-merge #157. Merging only decides when the
+  project appears on the hub; it unlocks nothing, so P1 starts regardless
 
 ### Next (P1, by 23 Aug)
 - [ ] Wallet capability probe on mainnet — the blocking unknown
