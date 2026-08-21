@@ -43,6 +43,13 @@ official skill says to use a version query instead, which is what we implemented
   claims, expiry refunds. Compiles against the real `privacy` package (git dep),
   **26 snforge tests passing**. Toolchain pinned to scarb 2.18.0 / snforge 0.63.0 to
   match the privacy monorepo. **Draft: unreviewed, unaudited, not deployed**
+- **C2 built**: `packages/core` — batch planning, commitment hashing, and the fund
+  and claim action builders with pool phase ordering. 29 tests
+- **Commitment parity proven across languages.** The same Poseidon vector is
+  asserted in both the TypeScript and Cairo suites, so a drift that would make every
+  claim link unredeemable fails the build on both sides
+- Verification totals: **73 tests green** (29 core + 17 capability + 27 Cairo),
+  typecheck and lint clean, 0 vulnerabilities
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
 - **Registered.** [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
@@ -56,6 +63,7 @@ official skill says to use a version query instead, which is what we implemented
 ### In progress
 - P1. Capability tooling is built but **not yet validated against a real wallet**
 - P2. Escrow contract drafted and tested locally; needs security review, then Sepolia
+- P3. Batch builder done; the payer UI that drives it is not started
 
 ### Next (P1, by 23 Aug)
 - [x] Build the wallet capability probe (C6)
@@ -74,6 +82,8 @@ get done first, not last.
 | --- | --- | --- |
 | 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
 | 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 21 Aug | Claim secrets are **bearer tokens**, never stored server-side | Whoever holds the secret can claim. Keeping it out of logs, storage and URL paths is the only thing protecting an unclaimed allocation |
+| 21 Aug | Action builders assert **pool phase order** | The pool rejects out-of-order actions only after the user has signed, so it is caught at build time instead |
 | 21 Aug | Capability detection uses a **version query**, not `strk20Balances` | The Day-0 doc suggests probing with the balance call; the official skill says not to, because it prompts the user for balance access a capability check has no reason to see |
 | 21 Aug | Build private **batch disbursement**, not collection | Verified: the 6 STRK fee is per transaction. Batching amortizes it for payouts; collection pays it per customer. The pool's economics pick a side and we build on it |
 | 21 Aug | **Wallet API route**, not the SDK route | No public mainnet proving service exists; server-held keys cannot prove on mainnet. Wallets ship a prover endpoint we do not have |
@@ -92,7 +102,7 @@ get done first, not last.
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
 | B6 | Escrow contract has had **no human security review**. It holds real funds | Open — gate before any deploy. Checklist in `contracts/README.md` |
-| B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | Open — settle with `strk20PrepareInvoke(actions, true)` dry run |
+| B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | Open — the builder now emits it and is unit-tested against the Cairo parameter order, but only a `strk20PrepareInvoke(actions, true)` dry run settles it |
 
 ## Key identifiers
 
