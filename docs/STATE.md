@@ -9,14 +9,19 @@ in the same commit as the work it describes.
 
 ## Next action
 
-**Settle whether any Starknet wallet implements the STRK20 methods on mainnet.**
-Everything else is built on that assumption and it is not yet verified. Probe a
-connected wallet with `wallet_strk20Balances` — it is read-only and safe to call
-against any wallet. A wallet answering "not implemented" means the plan changes, so
-this happens before any product code.
+**Run the capability check against a real wallet.** The tool is built and tested
+(`packages/strk20-capability`, surfaced at `/` in the web app) but has never been run
+against an actual browser wallet, so B1 is still open. Install Ready or Braavos, switch
+to Mainnet, `npm run dev`, and record what each wallet reports.
 
-Reference: PugarHuda's ~20-line MIT probe, linked from
-[strk20-hackathon#121](https://github.com/starkience/strk20-hackathon/issues/121).
+If no wallet reports Wallet API 0.10.3+, the Wallet API route is dead and the plan
+changes shape — so this is settled before any product code is written on top of it.
+
+**Correction from the original plan:** do *not* feature-detect by calling
+`wallet_strk20Balances`, which the Day-0 doc suggests. It reads shielded balances, so
+wallets gate it behind a consent prompt for data a capability check has no business
+seeing, and a user declining is indistinguishable from a wallet lacking support. The
+official skill says to use a version query instead, which is what we implemented.
 
 ## Status
 
@@ -28,6 +33,12 @@ Reference: PugarHuda's ~20-line MIT probe, linked from
   Infra 12, Tooling 6, Gaming 4
 - Upstream doc corrections filed: [strk20-hackathon#156](https://github.com/starkience/strk20-hackathon/issues/156)
 - Repository initialised: README, LICENSE (MIT), `strk20.json`, `CLAUDE.md`, plan and state
+- **Project scaffolded**: npm workspaces, Next.js 16 + React 19 + Tailwind 4 in
+  `apps/web`, Prettier, ESLint. `npm test` / `lint` / `typecheck` / `build` all green,
+  0 vulnerabilities
+- **C6 built**: `packages/strk20-capability` — STRK20 wallet support detection via
+  version query, 17 unit tests, publishable, documented
+- Landing page renders the capability panel
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
 - **Registered.** [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
@@ -39,10 +50,11 @@ Reference: PugarHuda's ~20-line MIT probe, linked from
 - GitHub repository published at https://github.com/leojay-net/almoner
 
 ### In progress
-- Nothing. P0 is complete; P1 is the next work
+- P1. Capability tooling is built but **not yet validated against a real wallet**
 
 ### Next (P1, by 23 Aug)
-- [ ] Wallet capability probe on mainnet — the blocking unknown
+- [x] Build the wallet capability probe (C6)
+- [ ] **Run it against Ready and Braavos on mainnet — B1 is still open**
 - [ ] Register a viewing key on the mainnet pool
 - [ ] Shield a small STRK amount
 - [ ] Make a third pool transaction
@@ -66,10 +78,11 @@ get done first, not last.
 
 | # | Item | Status |
 | --- | --- | --- |
-| B1 | Does **any** wallet implement STRK20 on mainnet? | **Open — blocking.** P1 settles it |
+| B1 | Does **any** wallet implement STRK20 on mainnet? | **Open — blocking.** Detection tool is built and unit-tested; needs one run against a real browser wallet |
 | B2 | Mainnet proving service URL unpublished | Open upstream (#121, #124, #135, #147). Designed around; not blocking |
 | B3 | Max recipients per batch before proof-size limits | Unknown. Docs give no number. Measure in P3 and publish it |
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
+| B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
 
 ## Key identifiers
 
