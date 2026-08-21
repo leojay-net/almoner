@@ -17,3 +17,5 @@ export const POOL_ADDRESS =
 export const POOL_FEE_FRI = 6_000_000_000_000_000_000n;
 
 export const VOYAGER_POOL_URL = `https://voyager.online/contract/${POOL_ADDRESS}`;
+
+export const VOYAGER_TX_URL = (hash: string) => `https://voyager.online/tx/${hash}`;
