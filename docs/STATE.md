@@ -54,7 +54,14 @@ official skill says to use a version query instead, which is what we implemented
   Alchemy key. Verified live against mainnet — allowed methods pass, writes return
   403, and reading the pool's `get_fee_amount` through it returns 6 STRK, confirming
   the fee finding by a second independent path
-- Verification totals: **80 tests green** (36 core + 17 capability + 27 Cairo),
+- **C3 built**: `/pay` — recipient paste, per-line validation, on-chain registration
+  detection, batch review with fee, claim-link export, dry run and fund
+- **Registration detection works.** `ViewingKeySet` events keyed by address, queried
+  from the pool's deploy block. Verified live: a registered address returns 1 event,
+  an unregistered one returns 0
+- **Pool deploy block found: 8,978,970** (binary search on `getClassHashAt`, 24 calls).
+  Scanning from block 0 pages through ~9M empty blocks and never returns
+- Verification totals: **91 tests green** (47 core + 17 capability + 27 Cairo),
   typecheck and lint clean, 0 vulnerabilities
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
@@ -69,7 +76,7 @@ official skill says to use a version query instead, which is what we implemented
 ### In progress
 - P1. Capability tooling is built but **not yet validated against a real wallet**
 - P2. Escrow contract drafted and tested locally; needs security review, then Sepolia
-- P3. Batch builder done; the payer UI that drives it is not started
+- P3. Done — batch builder and payer UI both built, unproven against a real wallet
 - P4. Claim page done, but end-to-end unproven: it needs a deployed escrow and a
   STRK20-capable wallet, so it currently renders the pre-deploy state
 
@@ -90,6 +97,8 @@ get done first, not last.
 | --- | --- | --- |
 | 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
 | 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 21 Aug | Funding is **gated on exporting the claim links** | Secrets exist only in the payer's browser tab. Funding without saving them strands every escrowed payment until the refund window — so the Fund button stays disabled until the CSV is downloaded |
+| 21 Aug | An **undetermined** registration is treated as unregistered | Escrow works for everyone; a direct transfer to an unregistered recipient reverts, and the batch is atomic, so that mistake would take the whole run down |
 | 21 Aug | Claim secrets ride in the **URL fragment**, never the path or query | Browsers never transmit the fragment. A bearer secret in the query would be written to server logs, proxy logs and `Referer` headers, from where anyone with log access could drain the allocation |
 | 21 Aug | The browser talks to chain through **our own read-only proxy** | Keeps the Alchemy key server-side. The allowlist stops it becoming an open relay for somebody else's write traffic |
 | 21 Aug | Claim secrets are **bearer tokens**, never stored server-side | Whoever holds the secret can claim. Keeping it out of logs, storage and URL paths is the only thing protecting an unclaimed allocation |
@@ -121,6 +130,9 @@ get done first, not last.
 | Pool (mainnet) | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` |
 | Chain | `SN_MAIN` / `0x534e5f4d41494e` |
 | Pool fee | 6 STRK per `apply_actions` call |
+| Pool deploy block | 8,978,970 — the floor for every event query |
+| `ViewingKeySet` selector | `0x1321a492485b4f19851fb787ab3800a0030b595332cba93cd5fe40dfb5a4daf` |
+| STRK (mainnet) | `0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d` |
 | Repo | `leojay-net/almoner` |
 | Telegram | `easybrane` |
 | Hub | https://strk20.starknet.io/hackathon |
