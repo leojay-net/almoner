@@ -10,6 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@almoner/core": "^0.1.0",
     "@almoner/strk20-capability": "^0.1.0",
     "@starknet-io/get-starknet-discovery": "6.0.3",
     "@starknet-io/get-starknet-wallet-standard": "6.0.3",
