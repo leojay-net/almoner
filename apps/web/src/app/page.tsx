@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { WalletCapabilityPanel } from "@/components/wallet-capability";
 import { POOL_ADDRESS, VOYAGER_POOL_URL } from "@/lib/chain";
 
@@ -11,6 +13,27 @@ export default function Home() {
           flat pool fee — including people who have never registered with the pool.
         </p>
       </header>
+
+      <nav className="mt-8 grid gap-3 sm:grid-cols-2">
+        <Link
+          href="/pay"
+          className="rounded-lg border border-neutral-200 p-4 transition hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
+        >
+          <p className="font-medium">Pay a batch →</p>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+            Many recipients, one transaction, one flat fee.
+          </p>
+        </Link>
+        <Link
+          href="/claim"
+          className="rounded-lg border border-neutral-200 p-4 transition hover:bg-neutral-50 dark:border-neutral-800 dark:hover:bg-neutral-900"
+        >
+          <p className="font-medium">Claim a payment →</p>
+          <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-400">
+            Redeem a claim link into a balance only you can see.
+          </p>
+        </Link>
+      </nav>
 
       <section className="mt-12">
         <h2 className="text-lg font-medium">Wallet check</h2>
