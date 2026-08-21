@@ -48,7 +48,13 @@ official skill says to use a version query instead, which is what we implemented
 - **Commitment parity proven across languages.** The same Poseidon vector is
   asserted in both the TypeScript and Cairo suites, so a drift that would make every
   claim link unredeemable fails the build on both sides
-- Verification totals: **73 tests green** (29 core + 17 capability + 27 Cairo),
+- **C4 built**: `/claim` page — link parsing, on-chain allocation lookup, wallet
+  connect, dry run and submit, with every allocation state handled
+- **RPC proxy** at `/api/rpc`: read-only method allowlist, batch cap, server-held
+  Alchemy key. Verified live against mainnet — allowed methods pass, writes return
+  403, and reading the pool's `get_fee_amount` through it returns 6 STRK, confirming
+  the fee finding by a second independent path
+- Verification totals: **80 tests green** (36 core + 17 capability + 27 Cairo),
   typecheck and lint clean, 0 vulnerabilities
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
@@ -64,6 +70,8 @@ official skill says to use a version query instead, which is what we implemented
 - P1. Capability tooling is built but **not yet validated against a real wallet**
 - P2. Escrow contract drafted and tested locally; needs security review, then Sepolia
 - P3. Batch builder done; the payer UI that drives it is not started
+- P4. Claim page done, but end-to-end unproven: it needs a deployed escrow and a
+  STRK20-capable wallet, so it currently renders the pre-deploy state
 
 ### Next (P1, by 23 Aug)
 - [x] Build the wallet capability probe (C6)
@@ -82,6 +90,8 @@ get done first, not last.
 | --- | --- | --- |
 | 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
 | 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 21 Aug | Claim secrets ride in the **URL fragment**, never the path or query | Browsers never transmit the fragment. A bearer secret in the query would be written to server logs, proxy logs and `Referer` headers, from where anyone with log access could drain the allocation |
+| 21 Aug | The browser talks to chain through **our own read-only proxy** | Keeps the Alchemy key server-side. The allowlist stops it becoming an open relay for somebody else's write traffic |
 | 21 Aug | Claim secrets are **bearer tokens**, never stored server-side | Whoever holds the secret can claim. Keeping it out of logs, storage and URL paths is the only thing protecting an unclaimed allocation |
 | 21 Aug | Action builders assert **pool phase order** | The pool rejects out-of-order actions only after the user has signed, so it is caught at build time instead |
 | 21 Aug | Capability detection uses a **version query**, not `strk20Balances` | The Day-0 doc suggests probing with the balance call; the official skill says not to, because it prompts the user for balance access a capability check has no reason to see |
@@ -102,7 +112,7 @@ get done first, not last.
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
 | B6 | Escrow contract has had **no human security review**. It holds real funds | Open — gate before any deploy. Checklist in `contracts/README.md` |
-| B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | Open — the builder now emits it and is unit-tested against the Cairo parameter order, but only a `strk20PrepareInvoke(actions, true)` dry run settles it |
+| B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | Open — **the Dry run button on `/claim` is the instrument that settles this.** It calls `strk20PrepareInvoke(actions, true)`, which proves without submitting. Needs B1 and a deployed escrow first |
 
 ## Key identifiers
 
