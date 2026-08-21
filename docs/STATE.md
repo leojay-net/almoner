@@ -4,7 +4,7 @@ Living handoff. **Read this first in any new session.** Update it as reality cha
 in the same commit as the work it describes.
 
 - **Last updated:** 21 August 2026
-- **Current phase:** P0 Register → moving into P1 Reach the pool
+- **Current phase:** P1 Reach the pool (P0 Register complete)
 - **Days to deadline:** 10 (31 August, 23:59 UTC)
 
 ## Next action
@@ -30,13 +30,16 @@ Reference: PugarHuda's ~20-line MIT probe, linked from
 - Repository initialised: README, LICENSE (MIT), `strk20.json`, `CLAUDE.md`, plan and state
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
-- Registration PR opened: [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
-  (10-line append, zero deletions, all 115 prior entries byte-identical)
+- **Registered.** [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
+  applied to upstream `main` as `a5fc256` by `strk20-sprint-bot`; entry verified live in
+  `registry.json` (116 entries). The PR shows *closed*, not *merged* — that is the normal
+  path: the bot rebuilds each entry on top of whatever landed while the PR was open, so
+  registrations cannot delete each other and no conflict ever needs resolving. The commit
+  is credited to us. **No second PR is ever opened**
 - GitHub repository published at https://github.com/leojay-net/almoner
 
 ### In progress
-- Waiting on the registry `apply` check to auto-merge #157. Merging only decides when the
-  project appears on the hub; it unlocks nothing, so P1 starts regardless
+- Nothing. P0 is complete; P1 is the next work
 
 ### Next (P1, by 23 Aug)
 - [ ] Wallet capability probe on mainnet — the blocking unknown
