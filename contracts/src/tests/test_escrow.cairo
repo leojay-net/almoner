@@ -412,6 +412,19 @@ fn refund_batch_sweeps_many_at_once() {
 
 // -------------------------------------------------------------- commitments
 
+/// Cross-language parity with the TypeScript client.
+///
+/// If this constant and `computeCommitmentHash` in `@almoner/core` ever drift,
+/// every claim link issued becomes unredeemable: the payer commits to one hash
+/// and the recipient proves a preimage of another. The same vector is asserted
+/// in the TypeScript test suite.
+#[test]
+fn commitment_hash_matches_the_typescript_client() {
+    assert!(
+        compute_commitment_hash('secret-one') == 0x1c43a7fcd994cb13b1375f6d4bc28e03bb50f244905f9e1410664958a93712f,
+    );
+}
+
 #[test]
 fn commitment_hashes_are_domain_separated_and_distinct() {
     assert!(compute_commitment_hash(SECRET) != compute_commitment_hash(OTHER_SECRET));
