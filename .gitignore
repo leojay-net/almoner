@@ -12,6 +12,7 @@ build/
 
 # Cairo / Scarb
 target/
+.snfoundry_cache/
 
 # Environment - NEVER commit RPC keys or private keys
 .env
