@@ -1,0 +1,34 @@
+{
+  "name": "@almoner/strk20-capability",
+  "version": "0.1.0",
+  "description": "Detect whether a connected Starknet wallet implements the STRK20 privacy wallet API, without triggering a consent prompt.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "@starknet-io/get-starknet-wallet-standard": ">=6.0.3",
+    "starknet": ">=10.4.0"
+  },
+  "devDependencies": {
+    "@starknet-io/get-starknet-wallet-standard": "6.0.3",
+    "@starknet-io/types-js": "0.10.3",
+    "starknet": "10.4.0",
+    "typescript": "^5",
+    "vitest": "^3.2.7"
+  }
+}
