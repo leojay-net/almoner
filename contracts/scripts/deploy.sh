@@ -44,6 +44,25 @@ fi
 
 CAST=(sncast --profile "$NETWORK" --account "$ACCOUNT_FILE" --keystore "$KEYSTORE_FILE")
 
+# sncast prompts for the keystore password on the terminal. With no TTY and no
+# KEYSTORE_PASSWORD set, that prompt fails as "Device not configured (os error
+# 6)", which says nothing useful. Catch it here instead.
+if [[ ! -t 0 && -z "${KEYSTORE_PASSWORD:-}" ]]; then
+  cat >&2 <<'NOTTY'
+ERROR: no terminal to prompt for the keystore password, and KEYSTORE_PASSWORD is unset.
+
+Either run this from a real terminal window:
+
+    cd "$(pwd)" && ./scripts/deploy.sh <network>
+
+or supply the password without putting it in shell history:
+
+    read -rs KEYSTORE_PASSWORD && export KEYSTORE_PASSWORD
+    ./scripts/deploy.sh <network>
+NOTTY
+  exit 3
+fi
+
 # Refuse to pin the escrow to an address with no pool behind it. A wrong pool
 # makes every privacy_invoke revert, discovered only after funding a batch.
 echo "==> Verifying pool $POOL on $NETWORK"
@@ -72,16 +91,75 @@ echo "    pool fee: $FEE STRK per transaction"
 echo "==> Building"
 scarb build
 
-echo "==> Declaring AlmonerEscrow"
-"${CAST[@]}" declare --contract-name AlmonerEscrow || true
+# sncast --json prints one JSON object per line, warnings included.
+field() { python3 -c "
+import json, sys
+key = sys.argv[1]
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        obj = json.loads(line)
+    except json.JSONDecodeError:
+        continue
+    if key in obj:
+        print(obj[key]); break
+" "$1"; }
+
+CLASS_HASH=$(starkli class-hash target/dev/almoner_escrow_AlmonerEscrow.contract_class.json)
+echo "==> Declaring AlmonerEscrow ($CLASS_HASH)"
+DECLARE_OUT=$("${CAST[@]}" --json declare --contract-name AlmonerEscrow 2>&1 || true)
+DECLARE_ERR=$(printf '%s' "$DECLARE_OUT" | field error)
+
+if [[ -n "$DECLARE_ERR" ]]; then
+  # An already-declared class is the one failure that is fine to continue past;
+  # anything else means the deploy below would fail confusingly.
+  if printf '%s' "$DECLARE_ERR" | grep -qiE "already declared|is already"; then
+    echo "    already declared, continuing"
+  else
+    echo "ERROR: declare failed: $DECLARE_ERR" >&2
+    exit 1
+  fi
+else
+  echo "    declared in $(printf '%s' "$DECLARE_OUT" | field transaction_hash)"
+fi
 
 echo "==> Deploying, pinned to pool $POOL"
-"${CAST[@]}" deploy --class-hash "$(starkli class-hash target/dev/almoner_escrow_AlmonerEscrow.contract_class.json)" \
-  --constructor-calldata "$POOL"
+DEPLOY_OUT=$("${CAST[@]}" --json deploy --class-hash "$CLASS_HASH" \
+  --constructor-calldata "$POOL" 2>&1 || true)
+DEPLOY_ERR=$(printf '%s' "$DEPLOY_OUT" | field error)
+if [[ -n "$DEPLOY_ERR" ]]; then
+  echo "ERROR: deploy failed: $DEPLOY_ERR" >&2
+  exit 1
+fi
+
+ESCROW=$(printf '%s' "$DEPLOY_OUT" | field contract_address)
+[[ -n "$ESCROW" ]] || { echo "ERROR: no contract address in deploy output" >&2; exit 1; }
+echo "    escrow: $ESCROW"
+
+echo "==> Verifying the deployed escrow points at the right pool"
+ON_CHAIN=$(sncast --json --profile "$NETWORK" call --contract-address "$ESCROW" \
+  --function privacy_pool 2>/dev/null | python3 -c "
+import json, sys
+for line in sys.stdin:
+    try: obj = json.loads(line.strip())
+    except Exception: continue
+    if 'response_raw' in obj:
+        print(int(obj['response_raw'][0], 16)); break
+")
+if [[ "$ON_CHAIN" != "$(printf '%d' "$POOL")" ]]; then
+  echo "ERROR: escrow reports a different pool than intended" >&2
+  exit 1
+fi
+echo "    confirmed"
 
 cat <<SUMMARY
 
-Deployed to $NETWORK, pinned to pool $POOL
+Deployed to $NETWORK
+  escrow      $ESCROW
+  class hash  $CLASS_HASH
+  pool        $POOL
 
 Next:
   1. Verify: sncast --profile $NETWORK call --contract-address <ESCROW> --function privacy_pool
