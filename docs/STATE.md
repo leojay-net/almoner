@@ -83,6 +83,11 @@ official skill says to use a version query instead, which is what we implemented
   same git dependency on a cold cache
 - **Deploy script**: `contracts/scripts/deploy.sh <sepolia|mainnet>` — verifies the
   pool exists before pinning to it, and reads `privacy_pool` back after deploying
+- **Interface rebuilt as a real SaaS app.** Design system (one primary + three
+  semantic colours, no decorative gradients, fluid display type), drawn icon set,
+  motion vocabulary, sidebar shell with a shared active indicator, and routes:
+  `/` landing, `/app` overview, `/app/{pay,claim,activity,wallet}`, and `/claim`
+  as a standalone public page for link recipients
 - Verification totals: **121 tests green** (49 core + 25 keeper + 17 capability +
   30 Cairo), typecheck and lint clean, 0 vulnerabilities, no secrets in git
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
@@ -121,6 +126,8 @@ get done first, not last.
 | --- | --- | --- |
 | 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
 | 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 22 Aug | `/claim` sits **outside** the app shell | A recipient arriving from a link is not a user of this product and may never be. Sidebar navigation into features they cannot use is noise; the page has one task |
+| 22 Aug | Colour is **semantic only** | One primary for "act", three semantics for the only states money is in here — settled, waiting, wrong. A colour that means nothing does not get used |
 | 22 Aug | Claim-secret exposure in calldata is **accepted, not fixed** | Binding commitments to a recipient address would remove the race but requires knowing their address at funding time, which defeats paying people with no account. A commit-reveal claim costs a second 6 STRK fee on a product built on fee amortisation. Documented as S1 |
 | 22 Aug | Keeper decides against **chain time**, with a grace period | The contract compares expiry to the block timestamp. Deciding on wall clock would submit refunds a moment early, which revert and waste gas |
 | 22 Aug | Keeper **re-reads each allocation on-chain** before refunding | Local state goes stale when a recipient claims mid-cycle, and `refund_batch` reverts wholesale — so an unverified chunk is wasted gas |
