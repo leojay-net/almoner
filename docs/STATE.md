@@ -3,9 +3,9 @@
 Living handoff. **Read this first in any new session.** Update it as reality changes,
 in the same commit as the work it describes.
 
-- **Last updated:** 21 August 2026
+- **Last updated:** 22 August 2026
 - **Current phase:** P1 Reach the pool (P0 Register complete)
-- **Days to deadline:** 10 (31 August, 23:59 UTC)
+- **Days to deadline:** 9 (31 August, 23:59 UTC)
 
 ## Next action
 
@@ -66,8 +66,19 @@ official skill says to use a version query instead, which is what we implemented
   before spending gas, chunked `refund_batch`, dry-run and single-pass modes
 - **Keeper verified against live mainnet**: scanned ~12,800 blocks, persisted its
   cursor, and a second run resumed at the next block instead of rescanning
-- Verification totals: **116 tests green** (47 core + 25 keeper + 17 capability +
-  27 Cairo), typecheck and lint clean, 0 vulnerabilities, no secrets in git
+- **Calldata parity pinned both ways.** The literal output of `buildFundActions`
+  and `buildClaimActions` is deserialized in Cairo through the same `Serde` path
+  the pool uses — fully consumed, values checked — and the same vectors are
+  asserted in the TypeScript suite. Encoder or signature drifting fails a build
+- **Escrow security self-review written** (`contracts/SECURITY.md`), eight findings
+- **Privacy overclaim corrected.** The review found the pay page and README
+  claiming the escrow split was hidden. It is not: `AllocationFunded` publishes each
+  amount in plaintext. Identity privacy is real; amount privacy on the escrow leg
+  never was
+- **CI added**: TypeScript and Cairo suites on every push, plus `scarb fmt --check`
+  and a production audit
+- Verification totals: **121 tests green** (49 core + 25 keeper + 17 capability +
+  30 Cairo), typecheck and lint clean, 0 vulnerabilities, no secrets in git
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
 
 - **Registered.** [strk20-hackathon#157](https://github.com/starkience/strk20-hackathon/pull/157)
@@ -104,6 +115,7 @@ get done first, not last.
 | --- | --- | --- |
 | 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
 | 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 22 Aug | Claim-secret exposure in calldata is **accepted, not fixed** | Binding commitments to a recipient address would remove the race but requires knowing their address at funding time, which defeats paying people with no account. A commit-reveal claim costs a second 6 STRK fee on a product built on fee amortisation. Documented as S1 |
 | 22 Aug | Keeper decides against **chain time**, with a grace period | The contract compares expiry to the block timestamp. Deciding on wall clock would submit refunds a moment early, which revert and waste gas |
 | 22 Aug | Keeper **re-reads each allocation on-chain** before refunding | Local state goes stale when a recipient claims mid-cycle, and `refund_batch` reverts wholesale — so an unverified chunk is wasted gas |
 | 21 Aug | Funding is **gated on exporting the claim links** | Secrets exist only in the payer's browser tab. Funding without saving them strands every escrowed payment until the refund window — so the Fund button stays disabled until the CSV is downloaded |
@@ -129,8 +141,8 @@ get done first, not last.
 | B3 | Max recipients per batch before proof-size limits | Unknown. Docs give no number. Measure in P3 and publish it |
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
-| B6 | Escrow contract has had **no human security review**. It holds real funds | Open — gate before any deploy. Checklist in `contracts/README.md` |
-| B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | Open — **the Dry run button on `/claim` is the instrument that settles this.** It calls `strk20PrepareInvoke(actions, true)`, which proves without submitting. Needs B1 and a deployed escrow first |
+| B6 | Escrow contract has had **no human security review**. It holds real funds | Open — a structured self-review is written up in `contracts/SECURITY.md` with eight findings, but a self-review is not an audit. Gate before any deploy |
+| B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | **Narrowed.** The encoder's output now provably deserializes into the contract signature (both suites pin the vectors), so field order, span lengths and enum indices are settled. What remains unproven is whether the *pool* accepts the surrounding action list — phase order, withdrawal leg, open-note indexing. The Dry run button settles that; needs B1 |
 
 ## Key identifiers
 
