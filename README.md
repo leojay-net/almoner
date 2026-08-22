@@ -60,17 +60,25 @@ the server run monthly payroll unattended.
 
 Being precise about this matters more than the feature list.
 
-| Public | Private |
-| --- | --- |
-| That an address funded the pool, the token, and the amount | Which recipients were paid, and how much each received |
-| That a claim happened, and the withdrawal amount if funds leave the pool | The link between a specific funding and a specific payout |
-| Timing of every on-chain step | Recipient balances and the payer's remaining position |
+The two payout routes have **different** privacy properties, and conflating them
+would be overclaiming:
 
-**Almoner does not hide amounts at the pool boundary.** Shielding is a public ERC-20
-leg: the deposit address, token and amount are visible. What stays hidden is the
-distribution — who received what, inside the pool. A distinctive amount funded and
-claimed shortly afterwards is correlatable, and we surface that in the UI rather than
-pretending otherwise.
+| | Amount | Recipient identity |
+| --- | --- | --- |
+| Direct note to a registered recipient | **hidden** | **hidden** |
+| Escrowed allocation | **public** | **hidden** until they claim |
+
+Escrow funding emits `AllocationFunded` with the amount in plaintext, keyed by the
+commitment hash. So the *split* of an escrowed batch is visible on-chain; what is not
+visible is who any allocation is for. Recipients never appear until they claim, and
+they claim into a private note.
+
+Always public: that an address funded the pool, the token and total, the timing of
+every step, and any withdrawal's destination and amount.
+
+**Almoner claims identity privacy, not amount privacy.** Shielding is a public ERC-20
+leg. A distinctive amount funded and claimed shortly afterwards is correlatable. See
+[`contracts/SECURITY.md`](contracts/SECURITY.md) for the full boundary.
 
 ## Verified protocol facts
 

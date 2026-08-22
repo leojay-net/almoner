@@ -29,9 +29,11 @@ export default function PayPage() {
           viewing key.
         </p>
         <p className="mt-2">
-          Amounts leaving your shielded balance are private. The escrow leg is a public
-          withdrawal, so the total moved to the escrow contract is visible on-chain — the split
-          between recipients is not.
+          Direct notes to registered recipients hide both the amount and the recipient. The
+          escrow leg does not: funding publishes each allocation&rsquo;s amount on-chain against
+          its commitment hash. What stays hidden there is <em>who</em> each allocation is for —
+          recipients never appear until they claim, and they claim into a private note. Almoner
+          claims identity privacy, not amount privacy, on the escrow path.
         </p>
         <p className="mt-2">
           <Link href="/" className="underline underline-offset-2">
