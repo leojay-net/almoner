@@ -20,7 +20,12 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      - run: npm ci
+      # `npm ci` would be preferable, but the lockfile is generated on macOS and
+      # npm does not record other platforms' optional native binaries in it
+      # (npm/cli#4828). On Linux that leaves lightningcss, @tailwindcss/oxide and
+      # @next/swc without their .node files and the Tailwind build fails. Versions
+      # are still pinned by the lockfile; this only adds the platform binaries.
+      - run: npm install --no-audit --no-fund
       # The web app imports the workspace packages' build output.
       - run: npm run build --workspace packages/strk20-capability --workspace packages/core
       - run: npm run typecheck
@@ -47,6 +52,10 @@ jobs:
       - uses: software-mansion/setup-scarb@v1
         with:
           scarb-version: 2.18.0
+          scarb-lock: contracts/Scarb.lock
+          # The restored cache left a half-written git checkout that scarb could
+          # not clean ("Directory not empty"). Correctness over a warm cache.
+          cache: false
       - uses: foundry-rs/setup-snfoundry@v4
         with:
           starknet-foundry-version: 0.63.0
