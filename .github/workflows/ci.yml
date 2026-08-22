@@ -43,11 +43,18 @@ jobs:
         working-directory: contracts
     steps:
       - uses: actions/checkout@v5
-      # actions/checkout installs a global auth header for github.com. Scarb sends
-      # it when cloning the privacy monorepo's own git dependencies, which fails
-      # with a bare `git` exit 128. Drop it before resolving dependencies.
-      - name: Clear checkout's global git auth header
-        run: git config --global --unset-all http.https://github.com/.extraheader || true
+        with:
+          # Scarb clones the privacy monorepo's own git dependencies. Leaving
+          # checkout's credentials in the git config makes those clones fail with
+          # a bare exit 128. We only need the source here, not push access.
+          persist-credentials: false
+      - name: Diagnose git access to the dependency repos
+        run: |
+          git --version
+          for repo in starkware-libs/starkware-starknet-utils EkuboProtocol/starknet-contracts; do
+            echo "--- $repo"
+            git ls-remote --heads "https://github.com/$repo" >/dev/null && echo "reachable" || echo "FAILED $?"
+          done
       # Versions come from .tool-versions, matching the privacy monorepo.
       - uses: software-mansion/setup-scarb@v1
         with:
