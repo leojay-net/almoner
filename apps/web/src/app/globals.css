@@ -1,26 +1,219 @@
 @import "tailwindcss";
 
+/* ==========================================================================
+   Almoner design system
+
+   One primary, three semantics, one neutral ramp. No gradients, no decorative
+   colour. Every hue in the product means something: primary is "act", and the
+   three semantics map to the only states money can be in here — settled, waiting,
+   wrong.
+
+   Colours are OKLCH so the light and dark ramps stay perceptually even instead of
+   drifting muddy at the ends.
+   ========================================================================== */
+
+@theme {
+  /* Neutral ramp — cool slate. Dark-first: 950 is the canvas. */
+  --color-ink-50: oklch(0.98 0.003 250);
+  --color-ink-100: oklch(0.95 0.005 250);
+  --color-ink-200: oklch(0.89 0.007 250);
+  --color-ink-300: oklch(0.79 0.009 250);
+  --color-ink-400: oklch(0.64 0.011 250);
+  --color-ink-500: oklch(0.52 0.012 250);
+  --color-ink-600: oklch(0.42 0.013 252);
+  --color-ink-700: oklch(0.33 0.014 254);
+  --color-ink-800: oklch(0.25 0.014 256);
+  --color-ink-850: oklch(0.21 0.014 256);
+  --color-ink-900: oklch(0.17 0.013 258);
+  --color-ink-950: oklch(0.13 0.012 260);
+  --color-ink-1000: oklch(0.10 0.011 260);
+
+  /* Primary — azure. The only non-semantic colour in the product. */
+  --color-primary-300: oklch(0.82 0.10 250);
+  --color-primary-400: oklch(0.75 0.14 250);
+  --color-primary-500: oklch(0.68 0.17 250);
+  --color-primary-600: oklch(0.60 0.18 252);
+  --color-primary-700: oklch(0.50 0.16 254);
+
+  /* Settled */
+  --color-positive-400: oklch(0.80 0.13 158);
+  --color-positive-500: oklch(0.72 0.16 158);
+  --color-positive-600: oklch(0.62 0.15 158);
+
+  /* Waiting */
+  --color-caution-400: oklch(0.84 0.13 78);
+  --color-caution-500: oklch(0.78 0.15 78);
+  --color-caution-600: oklch(0.68 0.14 68);
+
+  /* Wrong */
+  --color-critical-400: oklch(0.72 0.17 22);
+  --color-critical-500: oklch(0.64 0.20 22);
+  --color-critical-600: oklch(0.55 0.19 22);
+
+  /* Type — display sizes are fluid so headlines stay big without overflowing. */
+  --text-display: clamp(2.75rem, 1.5rem + 5.5vw, 5.5rem);
+  --text-display--line-height: 0.95;
+  --text-display--letter-spacing: -0.04em;
+  --text-title: clamp(2rem, 1.2rem + 3.2vw, 3.5rem);
+  --text-title--line-height: 1.03;
+  --text-title--letter-spacing: -0.032em;
+  --text-heading: clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+  --text-heading--line-height: 1.15;
+  --text-heading--letter-spacing: -0.022em;
+  --text-lead: clamp(1.0625rem, 1rem + 0.4vw, 1.3125rem);
+  --text-lead--line-height: 1.55;
+  --text-lead--letter-spacing: -0.011em;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --radius-card: 0.875rem;
+  --radius-panel: 1.25rem;
+
+  /* Motion — fast, ease-out, restrained. Nothing decorative moves. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+
+/* Semantic surface tokens. Dark is the default; light is a deliberate remap. */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  color-scheme: dark;
+
+  --canvas: var(--color-ink-1000);
+  --surface: var(--color-ink-950);
+  --surface-raised: var(--color-ink-900);
+  --surface-hover: var(--color-ink-850);
+  --line: oklch(0.28 0.014 256);
+  --line-strong: oklch(0.36 0.015 256);
+
+  --text-primary: var(--color-ink-50);
+  --text-secondary: var(--color-ink-300);
+  --text-muted: var(--color-ink-400);
+
+  --accent: var(--color-primary-500);
+  --accent-hover: var(--color-primary-400);
+  --accent-contrast: var(--color-ink-1000);
+  --accent-wash: oklch(0.68 0.17 250 / 0.12);
+
+  --positive: var(--color-positive-400);
+  --positive-wash: oklch(0.72 0.16 158 / 0.12);
+  --caution: var(--color-caution-400);
+  --caution-wash: oklch(0.78 0.15 78 / 0.12);
+  --critical: var(--color-critical-400);
+  --critical-wash: oklch(0.64 0.20 22 / 0.14);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    color-scheme: light;
+
+    --canvas: var(--color-ink-50);
+    --surface: oklch(1 0 0);
+    --surface-raised: oklch(1 0 0);
+    --surface-hover: var(--color-ink-100);
+    --line: oklch(0.90 0.006 250);
+    --line-strong: oklch(0.82 0.008 250);
+
+    --text-primary: var(--color-ink-950);
+    --text-secondary: var(--color-ink-600);
+    --text-muted: var(--color-ink-500);
+
+    --accent: var(--color-primary-600);
+    --accent-hover: var(--color-primary-700);
+    --accent-contrast: oklch(1 0 0);
+    --accent-wash: oklch(0.60 0.18 252 / 0.10);
+
+    --positive: var(--color-positive-600);
+    --positive-wash: oklch(0.62 0.15 158 / 0.10);
+    --caution: var(--color-caution-600);
+    --caution-wash: oklch(0.68 0.14 68 / 0.12);
+    --critical: var(--color-critical-600);
+    --critical-wash: oklch(0.55 0.19 22 / 0.10);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-hover: var(--surface-hover);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-hover: var(--accent-hover);
+  --color-accent-contrast: var(--accent-contrast);
+  --color-accent-wash: var(--accent-wash);
+  --color-positive: var(--positive);
+  --color-positive-wash: var(--positive-wash);
+  --color-caution: var(--caution);
+  --color-caution-wash: var(--caution-wash);
+  --color-critical: var(--critical);
+  --color-critical-wash: var(--critical-wash);
+}
+
+@layer base {
+  * {
+    border-color: var(--line);
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--canvas);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tabular figures everywhere money is shown, so digits stop jittering as
+     values animate. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+  }
+
+  ::selection {
+    background: var(--accent-wash);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Respect the OS setting. Motion is polish; it is never load-bearing. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer components {
+  /* A hairline that fades at both ends — used to separate sections without a
+     hard rule cutting the page in two. */
+  .rule-fade {
+    background: linear-gradient(90deg, transparent, var(--line-strong), transparent);
+    height: 1px;
+  }
+
+  .grid-backdrop {
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, black 20%, transparent 75%);
+  }
 }
