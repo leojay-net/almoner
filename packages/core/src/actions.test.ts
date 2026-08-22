@@ -171,3 +171,65 @@ describe("assertPhaseOrder", () => {
     ).not.toThrow();
   });
 });
+
+describe("calldata vectors pinned against the Cairo contract", () => {
+  // These exact arrays are asserted from the Cairo side in
+  // contracts/src/tests/test_escrow.cairo, where they are deserialized through
+  // the same Serde path the pool uses. Changing the encoder without changing the
+  // contract signature — or the reverse — fails one of the two suites.
+  const pinnedPlan = () => {
+    let n = 0;
+    return planBatch(
+      [
+        { recipient: "0x1", token: "0xaaa", amount: 100n, registered: false },
+        { recipient: "0x2", token: "0xaaa", amount: 250n, registered: false },
+      ],
+      {
+        refundRecipient: "0xfee",
+        expiry: 1_700_000_000n,
+        makeSecret: () => `0x${(++n).toString(16)}`,
+      },
+    );
+  };
+
+  it("emits the pinned Deposit calldata", () => {
+    const actions = buildFundActions(pinnedPlan(), { escrowAddress: "0xe5c" });
+    const invoke = actions.find((a) => a.type === "invoke")!;
+
+    expect("calldata" in invoke && invoke.calldata).toEqual([
+      "0x0",
+      "0x2",
+      "0x3a3153641129c026fb3d2c10762a45780b9806c8bec9407b3431143a6f0c587",
+      "0xaaa",
+      "0x64",
+      "0x6553f100",
+      "0xfee",
+      "0x3eeb95578202a78f3c5553a8c75fe7154d2d609801954a0d2708c6e224859a1",
+      "0xaaa",
+      "0xfa",
+      "0x6553f100",
+      "0xfee",
+      "0x0",
+    ]);
+  });
+
+  it("emits the pinned Claim calldata", () => {
+    const actions = buildClaimActions(
+      [
+        { secret: "0x1", token: "0xaaa" },
+        { secret: "0x2", token: "0xbbb" },
+      ],
+      { escrowAddress: "0xe5c", recipient: "0xc1a1" },
+    );
+
+    expect("calldata" in actions.at(-1)! && actions.at(-1)!.calldata).toEqual([
+      "0x1",
+      "0x0",
+      "0x2",
+      "0x1",
+      "${openNoteIds[0]}",
+      "0x2",
+      "${openNoteIds[1]}",
+    ]);
+  });
+});

@@ -421,7 +421,9 @@ fn refund_batch_sweeps_many_at_once() {
 #[test]
 fn commitment_hash_matches_the_typescript_client() {
     assert!(
-        compute_commitment_hash('secret-one') == 0x1c43a7fcd994cb13b1375f6d4bc28e03bb50f244905f9e1410664958a93712f,
+        compute_commitment_hash(
+            'secret-one',
+        ) == 0x1c43a7fcd994cb13b1375f6d4bc28e03bb50f244905f9e1410664958a93712f,
     );
 }
 
@@ -429,4 +431,91 @@ fn commitment_hash_matches_the_typescript_client() {
 fn commitment_hashes_are_domain_separated_and_distinct() {
     assert!(compute_commitment_hash(SECRET) != compute_commitment_hash(OTHER_SECRET));
     assert!(compute_commitment_hash(SECRET) != core::poseidon::poseidon_hash_span([SECRET].span()));
+}
+
+// ------------------------------------------- calldata parity with the client
+
+/// The pool deserializes invoke calldata straight into `privacy_invoke`'s
+/// parameters. These vectors are the literal output of `buildFundActions` and
+/// `buildClaimActions` in `@almoner/core`, so a shape mismatch between the
+/// TypeScript encoder and this signature fails here rather than on mainnet after
+/// the payer has signed.
+///
+/// Regenerate with the snippet in `docs/CALLDATA-VECTORS.md` if the signature changes.
+#[test]
+fn deposit_calldata_from_the_typescript_builder_deserializes() {
+    let mut calldata = array![
+        0x0, // EscrowOperation::Deposit
+        0x2, // allocations.len()
+        0x3a3153641129c026fb3d2c10762a45780b9806c8bec9407b3431143a6f0c587, 0xaaa, 0x64, 0x6553f100,
+        0xfee, 0x3eeb95578202a78f3c5553a8c75fe7154d2d609801954a0d2708c6e224859a1, 0xaaa, 0xfa,
+        0x6553f100, 0xfee, 0x0 // claims.len()
+    ]
+        .span();
+
+    let operation: EscrowOperation = Serde::deserialize(ref calldata).unwrap();
+    let allocations: Span<Allocation> = Serde::deserialize(ref calldata).unwrap();
+    let claims: Span<ClaimRequest> = Serde::deserialize(ref calldata).unwrap();
+
+    // Trailing garbage makes the pool reject the call, so the vector must be
+    // consumed exactly.
+    assert!(calldata.is_empty(), "calldata not fully consumed");
+
+    assert!(operation == EscrowOperation::Deposit);
+    assert!(claims.len() == 0);
+    assert!(allocations.len() == 2);
+
+    let first = *allocations.at(0);
+    assert!(
+        first.commitment_hash == 0x3a3153641129c026fb3d2c10762a45780b9806c8bec9407b3431143a6f0c587,
+    );
+    assert!(first.amount == 100);
+    assert!(first.expiry == 1700000000);
+    assert!(first.refund_recipient == 0xfee.try_into().unwrap());
+
+    let second = *allocations.at(1);
+    assert!(second.amount == 250);
+}
+
+#[test]
+fn claim_calldata_from_the_typescript_builder_deserializes() {
+    // `${openNoteIds[N]}` placeholders stand where the wallet substitutes real
+    // note ids; 0x9 and 0xa stand in for them here.
+    let mut calldata = array![
+        0x1, // EscrowOperation::Claim
+        0x0, // allocations.len()
+        0x2, // claims.len()
+        0x1,
+        0x9, // secret, note_id
+        0x2, 0xa,
+    ]
+        .span();
+
+    let operation: EscrowOperation = Serde::deserialize(ref calldata).unwrap();
+    let allocations: Span<Allocation> = Serde::deserialize(ref calldata).unwrap();
+    let claims: Span<ClaimRequest> = Serde::deserialize(ref calldata).unwrap();
+
+    assert!(calldata.is_empty(), "calldata not fully consumed");
+    assert!(operation == EscrowOperation::Claim);
+    assert!(allocations.len() == 0);
+    assert!(claims.len() == 2);
+    assert!(*claims.at(0) == ClaimRequest { secret: 0x1, note_id: 0x9 });
+    assert!(*claims.at(1) == ClaimRequest { secret: 0x2, note_id: 0xa });
+}
+
+/// The commitments in the deposit vector are what `computeCommitmentHash`
+/// produced for secrets 0x1 and 0x2, so the client's hashing is pinned from the
+/// contract side too.
+#[test]
+fn deposit_vector_commitments_match_the_client_hashes() {
+    assert!(
+        compute_commitment_hash(
+            0x1,
+        ) == 0x3a3153641129c026fb3d2c10762a45780b9806c8bec9407b3431143a6f0c587,
+    );
+    assert!(
+        compute_commitment_hash(
+            0x2,
+        ) == 0x3eeb95578202a78f3c5553a8c75fe7154d2d609801954a0d2708c6e224859a1,
+    );
 }
