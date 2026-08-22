@@ -27,10 +27,18 @@ if [[ "$NETWORK" != "sepolia" && "$NETWORK" != "mainnet" ]]; then
   exit 2
 fi
 
+# Two ways to sign, in preference order:
+#   ACCOUNT_NAME  - a name in sncast's accounts file. The key is stored there
+#                   directly, so this needs no password.
+#   ACCOUNT_FILE + KEYSTORE_FILE - starkli-format pair. Password-protected.
+ACCOUNT_NAME="${ACCOUNT_NAME:-}"
 ACCOUNT_FILE="${ACCOUNT_FILE:-$HOME/.starkli/accounts/starkbet_deployer.json}"
 KEYSTORE_FILE="${KEYSTORE_FILE:-$HOME/.starkli/keystores/starkbet_deployer.json}"
-[[ -f "$ACCOUNT_FILE" ]]  || { echo "ERROR: account file not found: $ACCOUNT_FILE" >&2; exit 1; }
-[[ -f "$KEYSTORE_FILE" ]] || { echo "ERROR: keystore not found: $KEYSTORE_FILE" >&2; exit 1; }
+
+if [[ -z "$ACCOUNT_NAME" ]]; then
+  [[ -f "$ACCOUNT_FILE" ]]  || { echo "ERROR: account file not found: $ACCOUNT_FILE" >&2; exit 1; }
+  [[ -f "$KEYSTORE_FILE" ]] || { echo "ERROR: keystore not found: $KEYSTORE_FILE" >&2; exit 1; }
+fi
 
 # Both verified on-chain and cross-checked against @avnu/avnu-sdk's constants.
 # The fee differs per network: 6 STRK on mainnet, 2 STRK on Sepolia.
@@ -42,12 +50,16 @@ else
   POOL="${POOL_ADDRESS:-$MAINNET_POOL}"
 fi
 
-CAST=(sncast --profile "$NETWORK" --account "$ACCOUNT_FILE" --keystore "$KEYSTORE_FILE")
+if [[ -n "$ACCOUNT_NAME" ]]; then
+  CAST=(sncast --profile "$NETWORK" --account "$ACCOUNT_NAME")
+else
+  CAST=(sncast --profile "$NETWORK" --account "$ACCOUNT_FILE" --keystore "$KEYSTORE_FILE")
+fi
 
 # sncast prompts for the keystore password on the terminal. With no TTY and no
 # KEYSTORE_PASSWORD set, that prompt fails as "Device not configured (os error
 # 6)", which says nothing useful. Catch it here instead.
-if [[ ! -t 0 && -z "${KEYSTORE_PASSWORD:-}" ]]; then
+if [[ -z "$ACCOUNT_NAME" && ! -t 0 && -z "${KEYSTORE_PASSWORD:-}" ]]; then
   cat >&2 <<'NOTTY'
 ERROR: no terminal to prompt for the keystore password, and KEYSTORE_PASSWORD is unset.
 
@@ -125,6 +137,37 @@ else
   echo "    declared in $(printf '%s' "$DECLARE_OUT" | field transaction_hash)"
 fi
 
+# A declare returns as soon as it is submitted, not when it is accepted. Deploying
+# straight away fails with "Class ... is not declared", which reads like the
+# declare failed when it actually succeeded. sncast has no wait flag, so poll.
+export NETWORK_PROFILE="$NETWORK"
+echo "==> Waiting for the class to be accepted"
+for attempt in $(seq 1 40); do
+  if sncast --json --profile "$NETWORK" call \
+       --contract-address "$POOL" --function get_fee_amount >/dev/null 2>&1 \
+     && python3 - "$CLASS_HASH" <<'PYWAIT'
+import json, sys, urllib.request, tomllib, pathlib
+class_hash = sys.argv[1]
+cfg = tomllib.loads(pathlib.Path("snfoundry.toml").read_text())
+import os
+url = cfg["sncast"][os.environ["NETWORK_PROFILE"]]["url"]
+req = urllib.request.Request(url, data=json.dumps({"jsonrpc":"2.0","id":1,
+    "method":"starknet_getClass","params":{"block_id":"latest","class_hash":class_hash}}).encode(),
+    headers={"content-type":"application/json","user-agent":"almoner/0.1"})
+try:
+    r = json.loads(urllib.request.urlopen(req, timeout=25).read())
+    sys.exit(0 if "result" in r else 1)
+except Exception:
+    sys.exit(1)
+PYWAIT
+  then
+    echo "    accepted after ${attempt} check(s)"
+    break
+  fi
+  [[ $attempt -eq 40 ]] && { echo "ERROR: class never became visible" >&2; exit 1; }
+  sleep 6
+done
+
 echo "==> Deploying, pinned to pool $POOL"
 DEPLOY_OUT=$("${CAST[@]}" --json deploy --class-hash "$CLASS_HASH" \
   --constructor-calldata "$POOL" 2>&1 || true)
@@ -148,8 +191,9 @@ for line in sys.stdin:
     if 'response_raw' in obj:
         print(int(obj['response_raw'][0], 16)); break
 ")
-if [[ "$ON_CHAIN" != "$(printf '%d' "$POOL")" ]]; then
-  echo "ERROR: escrow reports a different pool than intended" >&2
+# Compared in python: a felt is 252 bits and bash printf overflows on it.
+if ! python3 -c "import sys; sys.exit(0 if int('$ON_CHAIN') == int('$POOL', 16) else 1)"; then
+  echo "ERROR: escrow reports pool $ON_CHAIN, expected $POOL" >&2
   exit 1
 fi
 echo "    confirmed"

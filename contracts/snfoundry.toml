@@ -8,13 +8,15 @@
 # public Sepolia endpoints still serve 0.9 (which warns) or are discontinued.
 # Checked 23 Aug 2026 - Blast is shut down, Nethermind's free endpoint does not
 # resolve, cartridge serves 0.9.0, and Alchemy returns 429 on the free tier.
-# publicnode serves 0.10.2 and answers cleanly.
+# publicnode serves 0.10.2 but is READ-ONLY - it fails at the transport layer on
+# starknet_addDeclareTransaction. cartridge serves 0.9.0 (sncast warns) but does
+# accept writes, so it is what deployment actually goes through.
 #
 # Account and keystore are passed on the command line rather than stored here -
 # they are per-machine paths, and the keystore is password-protected.
 
 [sncast.sepolia]
-url = "https://starknet-sepolia-rpc.publicnode.com"
+url = "https://api.cartridge.gg/x/starknet/sepolia"
 
 [sncast.mainnet]
 url = "https://rpc.starknet.lava.build"
