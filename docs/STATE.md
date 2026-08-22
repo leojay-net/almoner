@@ -75,8 +75,14 @@ official skill says to use a version query instead, which is what we implemented
   claiming the escrow split was hidden. It is not: `AllocationFunded` publishes each
   amount in plaintext. Identity privacy is real; amount privacy on the escrow leg
   never was
-- **CI added**: TypeScript and Cairo suites on every push, plus `scarb fmt --check`
-  and a production audit
+- **CI added and green**: TypeScript and Cairo suites on every push, plus
+  `scarb fmt --check` and a production audit. Took four rounds to go green, and
+  every failure was a real portability bug the local suite could not have found:
+  Next-generated types missing before a build, Linux native binaries absent from a
+  macOS-generated lockfile (npm/cli#4828), and scarb racing itself resolving the
+  same git dependency on a cold cache
+- **Deploy script**: `contracts/scripts/deploy.sh <sepolia|mainnet>` — verifies the
+  pool exists before pinning to it, and reads `privacy_pool` back after deploying
 - Verification totals: **121 tests green** (49 core + 25 keeper + 17 capability +
   30 Cairo), typecheck and lint clean, 0 vulnerabilities, no secrets in git
 - Fork of the hackathon repo created at `leojay-net/strk20-hackathon`
