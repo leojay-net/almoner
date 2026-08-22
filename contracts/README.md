@@ -77,6 +77,25 @@ scarb fmt
 The `privacy` package is a git dependency on
 [starkware-libs/starknet-privacy](https://github.com/starkware-libs/starknet-privacy).
 
+## Deploying
+
+```bash
+export STARKNET_RPC=...        # target network
+export STARKNET_ACCOUNT=~/.starkli/accounts/almoner.json
+export STARKNET_KEYSTORE=~/.starkli/keys/almoner.json
+
+POOL_ADDRESS=0x... ./scripts/deploy.sh sepolia   # Sepolia pool must be passed explicitly
+./scripts/deploy.sh mainnet                       # mainnet pool is the default
+```
+
+The script refuses to pin the escrow to an address with no contract behind it —
+a mistyped pool would make every `privacy_invoke` revert, and you would only find
+out after funding a batch. After deploying it reads `privacy_pool` back and
+compares, so a silent constructor mistake fails loudly.
+
+There is deliberately **no Sepolia pool address hardcoded**: the mainnet pool does
+not exist there, and guessing one would be worse than refusing.
+
 ## Before this is deployed
 
 - [ ] Human security review by someone who did not write it
