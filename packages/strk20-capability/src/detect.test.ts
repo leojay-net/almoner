@@ -97,4 +97,14 @@ describe("describeStrk20Support", () => {
     supportedWalletApi.mockResolvedValue(["0.8.0"]);
     expect(describeStrk20Support(await detectStrk20Support(wallet))).toContain("0.10.3 or later");
   });
+
+  it("does not claim a wallet lacks STRK20 when it simply never answered", async () => {
+    // Braavos answers "Not implemented" to the version query. That is missing
+    // evidence, not evidence of absence, and the wording must not conflate them.
+    supportedWalletApi.mockRejectedValue(new Error("Not implemented"));
+    const message = describeStrk20Support(await detectStrk20Support(wallet));
+
+    expect(message).toContain("cannot be determined");
+    expect(message).not.toMatch(/does not support|no STRK20/i);
+  });
 });

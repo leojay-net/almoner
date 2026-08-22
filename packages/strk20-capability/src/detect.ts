@@ -133,7 +133,11 @@ export function describeStrk20Support(result: Strk20Support): string {
     case "no-versions-reported":
       return "Wallet reported no Wallet API versions, so STRK20 support cannot be confirmed.";
     case "query-failed":
-      return `Could not ask the wallet which Wallet API versions it supports: ${result.error ?? "unknown error"}`;
+      return (
+        "This wallet does not answer the Wallet API version query " +
+        `(${result.error ?? "unknown error"}), so STRK20 support cannot be ` +
+        "determined either way."
+      );
   }
 }
 

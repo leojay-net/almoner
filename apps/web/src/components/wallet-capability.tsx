@@ -8,6 +8,7 @@ import {
   type Strk20Support,
 } from "@almoner/strk20-capability";
 
+import { Pill } from "@/components/ui/pill";
 import {
   getServerWalletsSnapshot,
   getWalletsSnapshot,
@@ -129,12 +130,10 @@ export function WalletCapabilityPanel() {
 }
 
 function SupportBadge({ result }: { result: Strk20Support }) {
-  const styles = result.supported
-    ? "bg-positive-wash text-positive"
-    : "bg-critical-wash text-critical";
-  return (
-    <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-medium ${styles}`}>
-      {result.supported ? "STRK20 supported" : "No STRK20"}
-    </span>
-  );
+  // Three outcomes, not two. A wallet that never answered the version query has
+  // not told us it lacks STRK20 - it has told us nothing. Reporting that as
+  // "No STRK20" would assert absence from missing evidence.
+  if (result.supported) return <Pill tone="positive">STRK20 supported</Pill>;
+  if (result.reason === "query-failed") return <Pill tone="caution">Unknown</Pill>;
+  return <Pill tone="critical">No STRK20</Pill>;
 }

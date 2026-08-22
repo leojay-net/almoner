@@ -9,13 +9,11 @@ in the same commit as the work it describes.
 
 ## Next action
 
-**Run the capability check against a real wallet.** The tool is built and tested
-(`packages/strk20-capability`, surfaced at `/` in the web app) but has never been run
-against an actual browser wallet, so B1 is still open. Install Ready or Braavos, switch
-to Mainnet, `npm run dev`, and record what each wallet reports.
+**Deploy the escrow to Sepolia and dry-run a batch.** B1 is closed, so the route is
+confirmed and the remaining sequence is short: Sepolia deploy → `strk20PrepareInvoke`
+dry run (settles B7) → mainnet deploy → three mainnet transactions → fill `strk20.json`.
 
-If no wallet reports Wallet API 0.10.3+, the Wallet API route is dead and the plan
-changes shape — so this is settled before any product code is written on top of it.
+Blocked on a human review of the contract (B6) and a funded account.
 
 **Correction from the original plan:** do *not* feature-detect by calling
 `wallet_strk20Balances`, which the Day-0 doc suggests. It reads shielded balances, so
@@ -83,6 +81,14 @@ official skill says to use a version query instead, which is what we implemented
   same git dependency on a cold cache
 - **Deploy script**: `contracts/scripts/deploy.sh <sepolia|mainnet>` — verifies the
   pool exists before pinning to it, and reads `privacy_pool` back after deploying
+- **B1 answered against real wallets.** Ready X supports STRK20 (Wallet API 0.10.3);
+  MetaMask is too old at 0.7; Braavos does not answer the version query, so it is
+  unknown rather than unsupported. This is the first published data point on wallet
+  support — the STRK20 docs state no such list exists
+- **Badge accuracy fixed.** The capability UI reported two states where there are
+  three, showing "No STRK20" for a wallet that had merely failed to answer. Asserting
+  absence from missing evidence is the same overclaiming error the security review
+  caught in the privacy copy, in reverse
 - **Interface rebuilt as a real SaaS app.** Design system (one primary + three
   semantic colours, no decorative gradients, fluid display type), drawn icon set,
   motion vocabulary, sidebar shell with a shared active indicator, and routes:
@@ -126,6 +132,7 @@ get done first, not last.
 | --- | --- | --- |
 | 21 Aug | Escrow takes **batches**, not one allocation per call | The pool allows at most one external invoke per transaction, so a batch payout must carry every allocation in a single `privacy_invoke` |
 | 21 Aug | `refund` is **permissionless and proof-free** | It is the automation story: a keeper sweeps expired allocations unattended. Funds can only reach the refund address fixed at funding time, so opening it costs nothing |
+| 22 Aug | A wallet that fails the version query is **"Unknown"**, never "No" | Braavos answers "Not implemented" to `wallet_supportedWalletApi`. That is missing evidence, not evidence of absence — it may well support STRK20 without supporting the query |
 | 22 Aug | `/claim` sits **outside** the app shell | A recipient arriving from a link is not a user of this product and may never be. Sidebar navigation into features they cannot use is noise; the page has one task |
 | 22 Aug | Colour is **semantic only** | One primary for "act", three semantics for the only states money is in here — settled, waiting, wrong. A colour that means nothing does not get used |
 | 22 Aug | Claim-secret exposure in calldata is **accepted, not fixed** | Binding commitments to a recipient address would remove the race but requires knowing their address at funding time, which defeats paying people with no account. A commit-reveal claim costs a second 6 STRK fee on a product built on fee amortisation. Documented as S1 |
@@ -149,7 +156,7 @@ get done first, not last.
 
 | # | Item | Status |
 | --- | --- | --- |
-| B1 | Does **any** wallet implement STRK20 on mainnet? | **Open — blocking.** Detection tool is built and unit-tested; needs one run against a real browser wallet |
+| B1 | Does **any** wallet implement STRK20 on mainnet? | **CLOSED, 22 Aug.** Yes — **Ready X reports Wallet API `0.10.3`**. Braavos does not implement the version query at all ("Not implemented"), so its support is *unknown* rather than absent. MetaMask reports only `0.7`, definitively too old. **Ready X is the wallet to build and demo against** |
 | B2 | Mainnet proving service URL unpublished | Open upstream (#121, #124, #135, #147). Designed around; not blocking |
 | B3 | Max recipients per batch before proof-size limits | Unknown. Docs give no number. Measure in P3 and publish it |
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
