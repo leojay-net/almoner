@@ -30,14 +30,15 @@ fi
 : "${STARKNET_ACCOUNT:?set STARKNET_ACCOUNT to your starkli account file}"
 : "${STARKNET_KEYSTORE:?set STARKNET_KEYSTORE to your starkli keystore file}"
 
+# Both verified on-chain, and cross-checked against @avnu/avnu-sdk's constants.
+# The fee differs per network: 6 STRK on mainnet, 2 STRK on Sepolia.
 MAINNET_POOL="0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a"
-POOL="${POOL_ADDRESS:-$MAINNET_POOL}"
+SEPOLIA_POOL="0x254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91"
 
-if [[ "$NETWORK" == "sepolia" && -z "${POOL_ADDRESS:-}" ]]; then
-  echo "ERROR: no Sepolia pool address is hardcoded here." >&2
-  echo "The mainnet pool does not exist on Sepolia. Pass the Sepolia pool" >&2
-  echo "explicitly:  POOL_ADDRESS=0x... $0 sepolia" >&2
-  exit 2
+if [[ "$NETWORK" == "sepolia" ]]; then
+  POOL="${POOL_ADDRESS:-$SEPOLIA_POOL}"
+else
+  POOL="${POOL_ADDRESS:-$MAINNET_POOL}"
 fi
 
 # Refuse to pin the escrow to an address with no contract behind it. A zero-class

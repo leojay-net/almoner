@@ -24,6 +24,27 @@ export const POOL_FEE_FRI = 6_000_000_000_000_000_000n;
  */
 export const POOL_DEPLOY_BLOCK = 8_978_970;
 
+/**
+ * STRK20 pool addresses per network.
+ *
+ * Both taken from `@avnu/avnu-sdk@4.2.0`'s exported constants and then confirmed
+ * on-chain. The Sepolia pool answers `get_fee_amount` with **2 STRK**, not the 6
+ * STRK mainnet charges — the fee is per-network, so never hardcode one for the
+ * other. Sepolia class hash `0x56ab118a...`, matching what other teams report.
+ */
+export const POOLS = {
+  SN_MAIN: {
+    pool: "0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a",
+    feeFri: 6_000_000_000_000_000_000n,
+    deployBlock: 8_978_970,
+  },
+  SN_SEPOLIA: {
+    pool: "0x254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91",
+    feeFri: 2_000_000_000_000_000_000n,
+    deployBlock: 0,
+  },
+} as const;
+
 /** STRK on Starknet mainnet, the pool's fee token and the usual payout token. */
 export const STRK_TOKEN = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
