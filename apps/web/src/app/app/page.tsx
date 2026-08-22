@@ -5,8 +5,9 @@ import { RevealGroup, RevealItem } from "@/components/motion/primitives";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card } from "@/components/ui/card";
 import { Pill } from "@/components/ui/pill";
-import { POOL_FEE_FRI } from "@/lib/chain";
-import { formatUnits } from "@/lib/format";
+import { CHAIN_ID, POOL_FEE_FRI } from "@/lib/chain";
+import { ESCROW_ADDRESS } from "@/lib/escrow";
+import { formatUnits, shortenFelt } from "@/lib/format";
 
 export const metadata = { title: "Overview · Almoner" };
 
@@ -27,14 +28,18 @@ export default function OverviewPage() {
           />
         </RevealItem>
         <RevealItem>
-          <Stat label="Network" value="Starknet mainnet" note="SN_MAIN" />
+          <Stat
+            label="Network"
+            value={CHAIN_ID === "SN_MAIN" ? "Starknet mainnet" : "Starknet Sepolia"}
+            note={CHAIN_ID}
+          />
         </RevealItem>
         <RevealItem>
           <Stat
             label="Escrow"
-            value="Not deployed"
-            note="claims unavailable until it is"
-            tone="caution"
+            value={ESCROW_ADDRESS === "" ? "Not deployed" : shortenFelt(ESCROW_ADDRESS, 8, 6)}
+            note={ESCROW_ADDRESS === "" ? "claims unavailable until it is" : "live"}
+            tone={ESCROW_ADDRESS === "" ? "caution" : undefined}
           />
         </RevealItem>
       </RevealGroup>
