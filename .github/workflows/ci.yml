@@ -38,6 +38,11 @@ jobs:
         working-directory: contracts
     steps:
       - uses: actions/checkout@v5
+      # actions/checkout installs a global auth header for github.com. Scarb sends
+      # it when cloning the privacy monorepo's own git dependencies, which fails
+      # with a bare `git` exit 128. Drop it before resolving dependencies.
+      - name: Clear checkout's global git auth header
+        run: git config --global --unset-all http.https://github.com/.extraheader || true
       # Versions come from .tool-versions, matching the privacy monorepo.
       - uses: software-mansion/setup-scarb@v1
         with:
