@@ -20,12 +20,18 @@ jobs:
         with:
           node-version: 24
           cache: npm
-      # `npm ci` would be preferable, but the lockfile is generated on macOS and
-      # npm does not record other platforms' optional native binaries in it
-      # (npm/cli#4828). On Linux that leaves lightningcss, @tailwindcss/oxide and
-      # @next/swc without their .node files and the Tailwind build fails. Versions
-      # are still pinned by the lockfile; this only adds the platform binaries.
-      - run: npm install --no-audit --no-fund
+      - run: npm ci
+      # The lockfile is generated on macOS, and npm does not record other
+      # platforms' optional native binaries in it (npm/cli#4828). On Linux that
+      # leaves the Tailwind/Turbopack toolchain without its .node files. Install
+      # exactly the Linux equivalents of what the lockfile pins, without touching
+      # the lockfile itself.
+      - name: Install Linux native binaries missing from the macOS lockfile
+        run: |
+          npm install --no-save --no-audit --no-fund --workspace apps/web \
+            lightningcss-linux-x64-gnu@1.32.0 \
+            @tailwindcss/oxide-linux-x64-gnu@4.3.3 \
+            @next/swc-linux-x64-gnu@16.3.2
       # The web app imports the workspace packages' build output.
       - run: npm run build --workspace packages/strk20-capability --workspace packages/core
       - run: npm run typecheck
@@ -66,6 +72,18 @@ jobs:
       - uses: foundry-rs/setup-snfoundry@v4
         with:
           starknet-foundry-version: 0.63.0
+      # Scarb races itself resolving the same git dependency for several
+      # dependents on a cold cache, and dies with "Directory not empty". Warm the
+      # cache with a retry before building.
+      - name: Fetch Cairo dependencies
+        run: |
+          for attempt in 1 2 3; do
+            if scarb fetch; then exit 0; fi
+            echo "scarb fetch attempt $attempt failed, retrying"
+            rm -rf ~/.cache/scarb/registry/git
+            sleep 5
+          done
+          exit 1
       - run: scarb build
       - run: scarb fmt --check
       - run: snforge test
