@@ -132,36 +132,33 @@ export function PayerPanel() {
     setExported(true);
   }, []);
 
-  const submit = useCallback(
-    async (wallet: DiscoveredWallet, plan: BatchPlan, dryRun: boolean) => {
-      setStage({ kind: "working", label: dryRun ? "Proving…" : "Waiting for your wallet…" });
-      try {
-        const support = await detectStrk20Support(wallet);
-        if (!support.supported) {
-          setStage({ kind: "error", message: describeStrk20Support(support) });
-          return;
-        }
-        const account = await connectWalletAccount(wallet);
-        const actions = buildFundActions(plan, { escrowAddress: ESCROW_ADDRESS });
-
-        if (dryRun) {
-          await account.strk20PrepareInvoke(actions, true);
-          setStage({ kind: "dry-run-ok" });
-          return;
-        }
-        const { transaction_hash } = await account.strk20InvokeTransaction(actions);
-        setStage({ kind: "submitted", hash: transaction_hash, plan });
-      } catch (error) {
-        setStage({
-          kind: "error",
-          message: error instanceof Error ? error.message : String(error),
-        });
+  const submit = useCallback(async (wallet: DiscoveredWallet, plan: BatchPlan, dryRun: boolean) => {
+    setStage({ kind: "working", label: dryRun ? "Proving…" : "Waiting for your wallet…" });
+    try {
+      const support = await detectStrk20Support(wallet);
+      if (!support.supported) {
+        setStage({ kind: "error", message: describeStrk20Support(support) });
+        return;
       }
-    },
-    [],
-  );
+      const account = await connectWalletAccount(wallet);
+      const actions = buildFundActions(plan, { escrowAddress: ESCROW_ADDRESS });
 
-  if (!hydrated) return <p className="text-sm text-neutral-500">Loading…</p>;
+      if (dryRun) {
+        await account.strk20PrepareInvoke(actions, true);
+        setStage({ kind: "dry-run-ok" });
+        return;
+      }
+      const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+      setStage({ kind: "submitted", hash: transaction_hash, plan });
+    } catch (error) {
+      setStage({
+        kind: "error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }, []);
+
+  if (!hydrated) return <p className="text-sm text-text-muted">Loading…</p>;
 
   return (
     <div className="space-y-8">
@@ -170,7 +167,7 @@ export function PayerPanel() {
           <label htmlFor="recipients" className="text-sm font-medium">
             Recipients
           </label>
-          <p className="mt-1 text-sm text-neutral-500">
+          <p className="mt-1 text-sm text-text-muted">
             One <code>address, amount</code> per line. Paste straight from a spreadsheet.
           </p>
           <textarea
@@ -179,7 +176,7 @@ export function PayerPanel() {
             onChange={(event) => setText(event.target.value)}
             rows={8}
             spellCheck={false}
-            className="mt-2 w-full rounded-lg border border-neutral-300 bg-transparent p-3 font-mono text-xs dark:border-neutral-700"
+            className="mt-2 w-full rounded-card border border-line bg-transparent p-3 font-mono text-xs "
           />
         </div>
 
@@ -194,11 +191,11 @@ export function PayerPanel() {
               onChange={(event) => setRefund(event.target.value)}
               placeholder="0x…"
               spellCheck={false}
-              className="mt-2 w-full rounded-lg border border-neutral-300 bg-transparent p-2 font-mono text-xs dark:border-neutral-700"
+              className="mt-2 w-full rounded-card border border-line bg-transparent p-2 font-mono text-xs "
             />
-            <p className="mt-1 text-xs text-neutral-500">
-              Where unclaimed funds return. A refund is a public transfer, so use a fresh
-              address if that link matters.
+            <p className="mt-1 text-xs text-text-muted">
+              Where unclaimed funds return. A refund is a public transfer, so use a fresh address if
+              that link matters.
             </p>
           </div>
           <div>
@@ -210,9 +207,9 @@ export function PayerPanel() {
               value={expiryDays}
               onChange={(event) => setExpiryDays(event.target.value)}
               inputMode="numeric"
-              className="mt-2 w-full rounded-lg border border-neutral-300 bg-transparent p-2 text-sm dark:border-neutral-700"
+              className="mt-2 w-full rounded-card border border-line bg-transparent p-2 text-sm "
             />
-            <p className="mt-1 text-xs text-neutral-500">
+            <p className="mt-1 text-xs text-text-muted">
               0 means never expires, and never refundable.
             </p>
           </div>
@@ -224,7 +221,7 @@ export function PayerPanel() {
           type="button"
           onClick={() => void prepare()}
           disabled={parsed.recipients.length === 0 || stage.kind === "checking"}
-          className="rounded-md bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40 "
         >
           {stage.kind === "checking" ? "Checking the pool…" : "Review batch"}
         </button>
@@ -250,12 +247,12 @@ function ParseSummary({ parsed }: { parsed: ReturnType<typeof parseRecipients> }
   const total = parsed.recipients.reduce((sum, r) => sum + r.amount, 0n);
   return (
     <div className="space-y-2 text-sm">
-      <p className="text-neutral-600 dark:text-neutral-400">
+      <p className="text-text-secondary">
         {parsed.recipients.length} recipient{parsed.recipients.length === 1 ? "" : "s"},{" "}
         {formatUnits(total)} STRK total.
       </p>
       {parsed.errors.length > 0 ? (
-        <ul className="space-y-1 rounded-lg border border-red-300 bg-red-50 p-3 text-xs dark:border-red-800 dark:bg-red-950/40">
+        <ul className="space-y-1 rounded-card border border-critical/35 bg-critical-wash p-3 text-xs">
           {parsed.errors.map((error) => (
             <li key={error.line}>
               <span className="font-medium">Line {error.line}</span>: {error.reason}
@@ -286,7 +283,7 @@ function ReviewSection({
   const unknown = [...statuses.values()].filter((status) => status === "unknown").length;
 
   return (
-    <section className="space-y-4 border-t border-neutral-200 pt-8 dark:border-neutral-800">
+    <section className="space-y-4 border-t border-line pt-8 ">
       <h2 className="text-lg font-medium">Review</h2>
 
       <dl className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
@@ -296,33 +293,33 @@ function ReviewSection({
         <Stat label="Pool fee" value={`${formatUnits(POOL_FEE_FRI)} STRK`} />
       </dl>
 
-      <p className="text-sm text-neutral-600 dark:text-neutral-400">
-        One transaction, one fee — the same {formatUnits(POOL_FEE_FRI)} STRK whether this pays
-        one person or five hundred.
+      <p className="text-sm text-text-secondary">
+        One transaction, one fee — the same {formatUnits(POOL_FEE_FRI)} STRK whether this pays one
+        person or five hundred.
       </p>
 
       {unknown > 0 ? (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm dark:border-amber-800 dark:bg-amber-950/40">
+        <p className="rounded-card border border-caution/35 bg-caution-wash p-3 text-sm">
           Registration could not be confirmed for {unknown} address
           {unknown === 1 ? "" : "es"}, so {unknown === 1 ? "it is" : "they are"} routed through
-          escrow. That always works — the recipient just claims with a link instead of receiving
-          a note directly.
+          escrow. That always works — the recipient just claims with a link instead of receiving a
+          note directly.
         </p>
       ) : null}
 
       {plan.escrowed.length > 0 ? (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm dark:border-amber-800 dark:bg-amber-950/40">
+        <div className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">
           <p className="font-medium">Save the claim links before you fund</p>
-          <p className="mt-1 text-neutral-700 dark:text-neutral-300">
+          <p className="mt-1 text-text-secondary">
             The claim secrets exist only in this browser tab and are never sent anywhere. If you
             fund the batch and lose them, the {plan.escrowed.length} escrowed payment
-            {plan.escrowed.length === 1 ? "" : "s"} cannot be claimed by anyone and will sit
-            until the refund window opens.
+            {plan.escrowed.length === 1 ? "" : "s"} cannot be claimed by anyone and will sit until
+            the refund window opens.
           </p>
           <button
             type="button"
             onClick={onExport}
-            className="mt-3 rounded-md border border-neutral-400 bg-white px-3 py-1.5 text-sm font-medium transition hover:bg-neutral-100 dark:border-neutral-600 dark:bg-neutral-900 dark:hover:bg-neutral-800"
+            className="mt-3 rounded-md border border-line-strong bg-white px-3 py-1.5 text-sm font-medium transition hover:bg-surface-hover dark:bg-accent "
           >
             {exported ? "Download again" : "Download claim links (CSV)"}
           </button>
@@ -330,7 +327,7 @@ function ReviewSection({
       ) : null}
 
       {wallets.length === 0 ? (
-        <p className="text-sm text-neutral-500">
+        <p className="text-sm text-text-muted">
           No Starknet wallet detected. Install Ready or Braavos and switch to Mainnet.
         </p>
       ) : (
@@ -338,14 +335,14 @@ function ReviewSection({
           {wallets.map((wallet) => (
             <li
               key={walletKey(wallet)}
-              className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+              className="flex items-center justify-between gap-3 rounded-card border border-line p-3 "
             >
               <span className="truncate text-sm font-medium">{wallet.name}</span>
               <span className="flex shrink-0 gap-2">
                 <button
                   type="button"
                   onClick={() => onSubmit(wallet, true)}
-                  className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm transition hover:bg-neutral-100 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                  className="rounded-md border border-line px-3 py-1.5 text-sm transition hover:bg-surface-hover "
                 >
                   Dry run
                 </button>
@@ -358,7 +355,7 @@ function ReviewSection({
                       ? "Download the claim links first"
                       : undefined
                   }
-                  className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-40 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                  className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40"
                 >
                   Fund batch
                 </button>
@@ -373,26 +370,20 @@ function ReviewSection({
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-neutral-200 p-3 dark:border-neutral-800">
-      <dt className="text-xs text-neutral-500">{label}</dt>
+    <div className="rounded-card border border-line p-3 ">
+      <dt className="text-xs text-text-muted">{label}</dt>
       <dd className="mt-1 font-medium tabular-nums">{value}</dd>
     </div>
   );
 }
 
-function StageMessage({
-  stage,
-  onExport,
-}: {
-  stage: Stage;
-  onExport: (plan: BatchPlan) => void;
-}) {
+function StageMessage({ stage, onExport }: { stage: Stage; onExport: (plan: BatchPlan) => void }) {
   if (stage.kind === "working") {
-    return <p className="text-sm text-neutral-600 dark:text-neutral-400">{stage.label}</p>;
+    return <p className="text-sm text-text-secondary">{stage.label}</p>;
   }
   if (stage.kind === "dry-run-ok") {
     return (
-      <p className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm dark:border-emerald-800 dark:bg-emerald-950/40">
+      <p className="rounded-card border border-positive/35 bg-positive-wash p-4 text-sm">
         <span className="font-medium">Dry run succeeded.</span> The batch proved cleanly without
         being submitted, so the calldata shape is right.
       </p>
@@ -400,7 +391,7 @@ function StageMessage({
   }
   if (stage.kind === "submitted") {
     return (
-      <div className="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm dark:border-emerald-800 dark:bg-emerald-950/40">
+      <div className="rounded-card border border-positive/35 bg-positive-wash p-4 text-sm">
         <p className="font-medium">Batch funded</p>
         <p className="mt-1">
           <a
@@ -416,7 +407,7 @@ function StageMessage({
           <button
             type="button"
             onClick={() => onExport(stage.plan)}
-            className="mt-3 rounded-md border border-neutral-400 bg-white px-3 py-1.5 text-sm font-medium dark:border-neutral-600 dark:bg-neutral-900"
+            className="mt-3 rounded-md border border-line-strong bg-white px-3 py-1.5 text-sm font-medium dark:bg-accent"
           >
             Download claim links again
           </button>
@@ -426,7 +417,7 @@ function StageMessage({
   }
   if (stage.kind === "error") {
     return (
-      <p className="rounded-lg border border-red-300 bg-red-50 p-4 text-sm dark:border-red-800 dark:bg-red-950/40">
+      <p className="rounded-card border border-critical/35 bg-critical-wash p-4 text-sm">
         {stage.message}
       </p>
     );

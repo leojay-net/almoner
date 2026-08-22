@@ -73,7 +73,8 @@ export function ClaimPanel() {
     let cancelled = false;
     readAllocation(browserProvider(), ESCROW_ADDRESS, commitmentHash)
       .then((allocation) => {
-        if (!cancelled) setResolved({ hash: commitmentHash, value: { kind: "loaded", allocation } });
+        if (!cancelled)
+          setResolved({ hash: commitmentHash, value: { kind: "loaded", allocation } });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
@@ -137,7 +138,7 @@ export function ClaimPanel() {
   );
 
   if (!hydrated || payload === undefined) {
-    return <p className="text-sm text-neutral-500">Reading your claim link…</p>;
+    return <p className="text-sm text-text-muted">Reading your claim link…</p>;
   }
 
   if (payload === null) {
@@ -155,8 +156,8 @@ export function ClaimPanel() {
 
       {ESCROW_ADDRESS === "" ? (
         <Notice tone="warn" title="Escrow not deployed yet">
-          The contract address is not configured, so this claim cannot be completed. The link
-          itself parsed correctly.
+          The contract address is not configured, so this claim cannot be completed. The link itself
+          parsed correctly.
         </Notice>
       ) : (
         <ClaimActions
@@ -183,35 +184,33 @@ function AllocationSummary({
   const amount = allocation?.amount ?? payload.amount;
 
   return (
-    <div className="rounded-lg border border-neutral-200 p-5 dark:border-neutral-800">
-      <p className="text-sm text-neutral-500">You have been sent</p>
+    <div className="rounded-card border border-line p-5 ">
+      <p className="text-sm text-text-muted">You have been sent</p>
       <p className="mt-1 text-3xl font-semibold tabular-nums">
         {amount === undefined ? "—" : formatUnits(amount)}
-        <span className="ml-2 text-base font-normal text-neutral-500">
+        <span className="ml-2 text-base font-normal text-text-muted">
           {shortenFelt(payload.token)}
         </span>
       </p>
 
       <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-neutral-500">Commitment</dt>
+        <dt className="text-text-muted">Commitment</dt>
         <dd className="font-mono text-xs break-all">{shortenFelt(commitmentHash, 10, 8)}</dd>
         {allocation ? (
           <>
-            <dt className="text-neutral-500">Status</dt>
+            <dt className="text-text-muted">Status</dt>
             <dd>{allocation.status}</dd>
-            <dt className="text-neutral-500">Expires</dt>
+            <dt className="text-text-muted">Expires</dt>
             <dd>{formatExpiry(allocation.expiry)}</dd>
           </>
         ) : null}
       </dl>
 
       {lookup.kind === "loading" ? (
-        <p className="mt-3 text-sm text-neutral-500">Checking the escrow…</p>
+        <p className="mt-3 text-sm text-text-muted">Checking the escrow…</p>
       ) : null}
       {lookup.kind === "error" ? (
-        <p className="mt-3 text-sm text-red-700 dark:text-red-300">
-          Could not read the escrow: {lookup.message}
-        </p>
+        <p className="mt-3 text-sm text-critical">Could not read the escrow: {lookup.message}</p>
       ) : null}
     </div>
   );
@@ -228,11 +227,7 @@ function ClaimActions({
   submission: Submission;
   onClaim: (wallet: DiscoveredWallet, dryRun: boolean) => void;
 }) {
-  const nowSeconds = useSyncExternalStore(
-    subscribeToClock,
-    getNowSeconds,
-    getServerNowSeconds,
-  );
+  const nowSeconds = useSyncExternalStore(subscribeToClock, getNowSeconds, getServerNowSeconds);
 
   if (lookup.kind === "loaded") {
     const { allocation } = lookup;
@@ -278,7 +273,7 @@ function ClaimActions({
         {wallets.map((wallet) => (
           <li
             key={walletKey(wallet)}
-            className="flex items-center justify-between gap-3 rounded-lg border border-neutral-200 p-3 dark:border-neutral-800"
+            className="flex items-center justify-between gap-3 rounded-card border border-line p-3 "
           >
             <span className="truncate text-sm font-medium">{wallet.name}</span>
             <span className="flex shrink-0 gap-2">
@@ -286,7 +281,7 @@ function ClaimActions({
                 type="button"
                 disabled={busy}
                 onClick={() => onClaim(wallet, true)}
-                className="rounded-md border border-neutral-300 px-3 py-1.5 text-sm transition hover:bg-neutral-100 disabled:opacity-50 dark:border-neutral-700 dark:hover:bg-neutral-800"
+                className="rounded-md border border-line px-3 py-1.5 text-sm transition hover:bg-surface-hover disabled:opacity-50 "
               >
                 Dry run
               </button>
@@ -294,7 +289,7 @@ function ClaimActions({
                 type="button"
                 disabled={busy}
                 onClick={() => onClaim(wallet, false)}
-                className="rounded-md bg-neutral-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:opacity-50 dark:bg-white dark:text-neutral-900 dark:hover:bg-neutral-200"
+                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40 "
               >
                 Claim
               </button>
@@ -305,7 +300,7 @@ function ClaimActions({
 
       <SubmissionState submission={submission} />
 
-      <p className="text-xs text-neutral-500">
+      <p className="text-xs text-text-muted">
         Claiming registers you with the pool if you are not registered yet, then credits a private
         note you own. A dry run proves the transaction without submitting it.
       </p>
@@ -318,7 +313,7 @@ function SubmissionState({ submission }: { submission: Submission }) {
     case "idle":
       return null;
     case "working":
-      return <p className="text-sm text-neutral-600 dark:text-neutral-400">{submission.label}</p>;
+      return <p className="text-sm text-text-secondary">{submission.label}</p>;
     case "dry-run-ok":
       return (
         <Notice tone="ok" title="Dry run succeeded">
@@ -358,14 +353,14 @@ function Notice({
   children: React.ReactNode;
 }) {
   const tones = {
-    ok: "border-emerald-300 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40",
-    warn: "border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40",
-    error: "border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/40",
+    ok: "border-positive/35 bg-positive-wash",
+    warn: "border-caution/35 bg-caution-wash",
+    error: "border-critical/35 bg-critical-wash",
   } as const;
   return (
-    <div className={`rounded-lg border p-4 text-sm ${tones[tone]}`}>
+    <div className={`rounded-card border p-4 text-sm ${tones[tone]}`}>
       <p className="font-medium">{title}</p>
-      <div className="mt-1 text-neutral-700 dark:text-neutral-300">{children}</div>
+      <div className="mt-1 text-text-secondary">{children}</div>
     </div>
   );
 }
