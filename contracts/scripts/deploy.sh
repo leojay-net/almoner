@@ -53,8 +53,20 @@ if ! sncast --profile "$NETWORK" call --contract-address "$POOL" \
   exit 1
 fi
 FEE=$(sncast --json --profile "$NETWORK" call --contract-address "$POOL" \
-        --function get_fee_amount 2>/dev/null | python3 -c \
-        "import json,sys;print(int(json.load(sys.stdin)['response_raw'][0],16)/10**18)")
+        --function get_fee_amount 2>/dev/null | python3 -c "
+import json, sys
+for line in sys.stdin:
+    line = line.strip()
+    if not line:
+        continue
+    try:
+        obj = json.loads(line)
+    except json.JSONDecodeError:
+        continue
+    if 'response_raw' in obj:
+        print(int(obj['response_raw'][0], 16) / 10**18)
+        break
+")
 echo "    pool fee: $FEE STRK per transaction"
 
 echo "==> Building"

@@ -4,11 +4,17 @@
 # fails with "Invalid params" on every call, so deployment goes through sncast,
 # which ships with the starknet-foundry version pinned in ../.tool-versions.
 #
-# Account and keystore are passed on the command line rather than stored here —
+# Endpoint choice is not arbitrary: sncast 0.63 expects JSON-RPC 0.10, and most
+# public Sepolia endpoints still serve 0.9 (which warns) or are discontinued.
+# Checked 23 Aug 2026 - Blast is shut down, Nethermind's free endpoint does not
+# resolve, cartridge serves 0.9.0, and Alchemy returns 429 on the free tier.
+# publicnode serves 0.10.2 and answers cleanly.
+#
+# Account and keystore are passed on the command line rather than stored here -
 # they are per-machine paths, and the keystore is password-protected.
 
 [sncast.sepolia]
-url = "https://api.cartridge.gg/x/starknet/sepolia"
+url = "https://starknet-sepolia-rpc.publicnode.com"
 
 [sncast.mainnet]
 url = "https://rpc.starknet.lava.build"
