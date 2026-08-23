@@ -24,9 +24,17 @@ export const viewport: Viewport = {
   ],
 };
 
+// Browser extensions inject attributes onto <html> before React hydrates
+// (data-qb-installed and friends), which React reads as a server/client
+// mismatch. suppressHydrationWarning is the documented fix and applies to this
+// element only, so real mismatches deeper in the tree still surface.
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html
+      lang="en"
+      suppressHydrationWarning
+      className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+    >
       <body>{children}</body>
     </html>
   );
