@@ -3,9 +3,31 @@
 Living handoff. **Read this first in any new session.** Update it as reality changes,
 in the same commit as the work it describes.
 
-- **Last updated:** 22 August 2026
+- **Last updated:** 26 August 2026
 - **Current phase:** P1 Reach the pool (P0 Register complete)
-- **Days to deadline:** 9 (31 August, 23:59 UTC)
+- **Days to deadline:** 5 (31 August, 23:59 UTC)
+
+## Verified by testing against real wallets, 26 Aug
+
+Three findings that are not written down anywhere upstream, each of which cost real
+debugging time:
+
+1. **Ready's STRK20 backend serves mainnet only.** The identical deposit action
+   returns `UNKNOWN_ERROR` (code 163) on Sepolia and `NOT_REGISTERED` (code 118) on
+   mainnet. The Sepolia failure comes back in ~25ms — far too fast to have attempted
+   proving, which takes ~29s — so its backend is refusing outright, not failing to
+   prove. **Sepolia cannot be used to test the Wallet API route.**
+2. **`supportedWalletApi` does not tell you this.** It reports what the wallet
+   *implements*, not what its backend serves *per network*. Ready reports `0.10.3`
+   on both networks while only one works, so a capability probe cannot detect it.
+3. **Registration is a prerequisite and is not expressible through the Wallet API.**
+   The action union is `deposit | withdraw | transfer | invoke` — there is no
+   register action. A dapp cannot register a user; it has to happen in the wallet's
+   own UI or at `strk20.starknet.io/app`. The docs saying wallets "register on first
+   use" does not hold for Ready, which returns `NOT_REGISTERED` instead.
+
+Consequence: the Sepolia escrow at `0x055e0d…8e8e` is deployed and healthy but cannot
+be exercised end to end, because no wallet will prove against Sepolia.
 
 ## Next action
 
