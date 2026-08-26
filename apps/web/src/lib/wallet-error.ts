@@ -61,3 +61,33 @@ export function explainWalletError(error: unknown, context: { feeLabel: string }
 
   return detail;
 }
+
+/**
+ * Bounds a wallet call.
+ *
+ * A wallet extension whose background worker has died never answers at all — the
+ * promise simply never settles, and the UI sits on a spinner forever. A bounded
+ * wait turns that into a diagnosis.
+ */
+export function withWalletTimeout<T>(
+  promise: Promise<T>,
+  { seconds = 90, action }: { seconds?: number; action: string },
+): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error(
+              `The wallet did not respond within ${seconds}s while trying to ${action}. ` +
+                "Its background worker is probably not running — open the wallet from the " +
+                "browser toolbar, then try again. If several wallet extensions are installed, " +
+                "disable the ones you are not using: a broken one can interfere with the rest.",
+            ),
+          ),
+        seconds * 1000,
+      ),
+    ),
+  ]);
+}

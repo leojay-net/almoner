@@ -25,7 +25,7 @@ import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
 import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
 import { useAccountStatus } from "@/lib/account-status";
-import { explainWalletError } from "@/lib/wallet-error";
+import { explainWalletError, withWalletTimeout } from "@/lib/wallet-error";
 import { useWallet } from "@/lib/wallet-context";
 
 type StepId = "connect" | "fund" | "recipients" | "review" | "send";
@@ -121,7 +121,9 @@ export function SendFlow() {
       const actions: STRK20_ACTION[] = [
         { type: "deposit", token: STRK_TOKEN, amount: `0x${value.toString(16)}` },
       ];
-      await connection.account.strk20InvokeTransaction(actions);
+      await withWalletTimeout(connection.account.strk20InvokeTransaction(actions), {
+        action: "move funds into the pool",
+      });
       status.refresh();
       setVisited(null);
     } catch (e) {
@@ -200,10 +202,15 @@ export function SendFlow() {
       try {
         const actions = buildFundActions(plan, { escrowAddress: ESCROW_ADDRESS });
         if (dryRun) {
-          await connection.account.strk20PrepareInvoke(actions, true);
+          await withWalletTimeout(connection.account.strk20PrepareInvoke(actions, true), {
+            action: "prove the transaction",
+          });
           setDryRunOk(true);
         } else {
-          const { transaction_hash } = await connection.account.strk20InvokeTransaction(actions);
+          const { transaction_hash } = await withWalletTimeout(
+            connection.account.strk20InvokeTransaction(actions),
+            { action: "submit the payment" },
+          );
           setSentHash(transaction_hash);
         }
       } catch (e) {

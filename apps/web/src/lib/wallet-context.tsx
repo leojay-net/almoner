@@ -16,6 +16,7 @@ import { detectStrk20Support, type Strk20Support } from "@almoner/strk20-capabil
 import { walletV6 } from "starknet";
 
 import { connectWalletAccount } from "./wallet-account";
+import { explainWalletError, withWalletTimeout } from "./wallet-error";
 import {
   getServerWalletsSnapshot,
   getWalletsSnapshot,
@@ -90,7 +91,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // Capability first: connecting to a wallet that cannot execute STRK20
       // actions only defers the failure to the first thing you try to do.
       const support = await detectStrk20Support(wallet);
-      const account = await connectWalletAccount(wallet);
+      const account = await withWalletTimeout(connectWalletAccount(wallet), {
+        seconds: 30,
+        action: `connect to ${wallet.name}`,
+      });
       // A wallet pointed at a different network than the app fails every action
       // with an opaque error, because the pool address does not exist there.
       let chainId = "";
@@ -112,9 +116,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       });
       window.localStorage.setItem(REMEMBERED, wallet.name);
     } catch (error) {
+      // Forget it: otherwise a broken extension is retried on every page load.
+      window.localStorage.removeItem(REMEMBERED);
       setConnection({
         status: "error",
-        message: error instanceof Error ? error.message : String(error),
+        message: explainWalletError(error, { feeLabel: "pool" }),
       });
     }
   }, []);
