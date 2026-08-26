@@ -2,7 +2,6 @@
 
 import { useCallback, useMemo, useState } from "react";
 import {
-  POOL_FEE_FRI,
   buildFundActions,
   encodeClaimLink,
   parseRecipients,
@@ -12,7 +11,10 @@ import {
 } from "@almoner/core";
 import { describeStrk20Support } from "@almoner/strk20-capability";
 
-import { STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
+// POOL_FEE_FRI comes from chain.ts, not @almoner/core: the package constant is
+// mainnet's 6 STRK, and Sepolia charges 2. Quoting the wrong one misstates the
+// cost of the transaction the payer is about to sign.
+import { POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { Button } from "@/components/ui/button";
 import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
@@ -305,18 +307,36 @@ function ReviewSection({
       ) : null}
 
       {plan.escrowed.length > 0 ? (
-        <div className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">
-          <p className="font-medium">Save the claim links before you fund</p>
+        <div
+          className={`rounded-card border p-4 text-sm ${
+            exported ? "border-positive/35 bg-positive-wash" : "border-caution/35 bg-caution-wash"
+          }`}
+        >
+          <p className="font-medium">
+            {exported
+              ? "Claim links saved — now fund the batch"
+              : "Save the claim links before you fund"}
+          </p>
           <p className="mt-1 text-text-secondary">
-            The claim secrets exist only in this browser tab and are never sent anywhere. If you
-            fund the batch and lose them, the {plan.escrowed.length} escrowed payment
-            {plan.escrowed.length === 1 ? "" : "s"} cannot be claimed by anyone and will sit until
-            the refund window opens.
+            {exported ? (
+              <>
+                Downloading the links does not move any money. Nothing is paid until you fund the
+                batch below and sign in your wallet — until then those links have nothing behind
+                them.
+              </>
+            ) : (
+              <>
+                The claim secrets exist only in this browser tab and are never sent anywhere. If you
+                fund the batch and lose them, the {plan.escrowed.length} escrowed payment
+                {plan.escrowed.length === 1 ? "" : "s"} cannot be claimed by anyone and will sit
+                until the refund window opens.
+              </>
+            )}
           </p>
           <button
             type="button"
             onClick={onExport}
-            className="mt-3 rounded-md border border-line-strong bg-white px-3 py-1.5 text-sm font-medium transition hover:bg-surface-hover dark:bg-accent "
+            className="mt-3 rounded-lg border border-line-strong px-3 py-1.5 text-sm font-medium transition hover:bg-surface-hover"
           >
             {exported ? "Download again" : "Download claim links (CSV)"}
           </button>

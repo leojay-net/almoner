@@ -42,5 +42,20 @@ export const POOL_DEPLOY_BLOCK = ACTIVE.deployBlock;
 /** STRK — the pool's fee token and the usual payout token. Same address on both. */
 export const STRK_TOKEN = "0x04718f5a0fc34cc1af16a1cdee98ffb20c31f5cd61d6ab07201858f4287c938d";
 
+/** Known tokens, so the UI shows "STRK" rather than a 64-character address. */
+const TOKEN_SYMBOLS: Record<string, string> = {
+  [BigInt(STRK_TOKEN).toString()]: "STRK",
+  [BigInt("0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7").toString()]: "ETH",
+};
+
+/** Symbol for a token address, or a shortened address when it is unknown. */
+export function tokenSymbol(address: string): string {
+  try {
+    return TOKEN_SYMBOLS[BigInt(address).toString()] ?? `${address.slice(0, 6)}…${address.slice(-4)}`;
+  } catch {
+    return address;
+  }
+}
+
 export const VOYAGER_POOL_URL = `${ACTIVE.explorer}/contract/${POOL_ADDRESS}`;
 export const VOYAGER_TX_URL = (hash: string) => `${ACTIVE.explorer}/tx/${hash}`;

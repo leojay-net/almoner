@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { detectStrk20Support, describeStrk20Support } from "@almoner/strk20-capability";
 
-import { VOYAGER_TX_URL } from "@/lib/chain";
+import { VOYAGER_TX_URL, tokenSymbol } from "@/lib/chain";
 import { getNowSeconds, getServerNowSeconds, subscribeToClock } from "@/lib/clock";
 import { connectWalletAccount } from "@/lib/wallet-account";
 import {
@@ -244,7 +244,11 @@ function AllocationSummary({
   commitmentHash: string;
 }) {
   const allocation = lookup.kind === "loaded" ? lookup.allocation : null;
-  const amount = allocation?.amount ?? payload.amount;
+  // A "None" allocation has zeroed fields because it does not exist on-chain yet.
+  // Showing its 0 as the amount tells the recipient they were sent nothing, when
+  // the truth is the batch has not been funded. Fall back to the link's figure.
+  const onChainAmount = allocation !== null && allocation.status !== "None" ? allocation.amount : undefined;
+  const amount = onChainAmount ?? payload.amount;
 
   return (
     <div className="rounded-card border border-line p-5 ">
@@ -252,7 +256,7 @@ function AllocationSummary({
       <p className="mt-1 text-3xl font-semibold tabular-nums">
         {amount === undefined ? "—" : formatUnits(amount)}
         <span className="ml-2 text-base font-normal text-text-muted">
-          {shortenFelt(payload.token)}
+          {tokenSymbol(payload.token)}
         </span>
       </p>
 
