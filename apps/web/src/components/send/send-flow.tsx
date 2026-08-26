@@ -29,7 +29,7 @@ import { explainWalletError } from "@/lib/wallet-error";
 import { trace } from "@/lib/trace";
 import { useWallet } from "@/lib/wallet-context";
 import { walletExecutor } from "@/lib/executor-wallet";
-import { ROUTE, describeRoute } from "@/lib/executor";
+import { ROUTE } from "@/lib/executor";
 
 type StepId = "connect" | "fund" | "recipients" | "review" | "send";
 
@@ -60,10 +60,14 @@ export function SendFlow() {
   const status = useAccountStatus();
 
   // Everything below is route-agnostic: it holds an executor, not a wallet.
-  const executor =
-    connection.status === "connected"
-      ? walletExecutor(connection.account, connection.wallet.name)
-      : null;
+  // Memoised so it is a stable dependency rather than a new object each render.
+  const executor = useMemo(
+    () =>
+      connection.status === "connected"
+        ? walletExecutor(connection.account, connection.wallet.name)
+        : null,
+    [connection],
+  );
 
   const [shieldAmount, setShieldAmount] = useState("25");
   const [recipientText, setRecipientText] = useState(SAMPLE);
@@ -117,7 +121,7 @@ export function SendFlow() {
 
   const shield = useCallback(
     async (dryRun: boolean) => {
-      if (connection.status !== "connected") return;
+      if (executor === null || connection.status !== "connected") return;
       setError(null);
       setFundDryRunOk(false);
       let value: bigint;
@@ -253,7 +257,7 @@ export function SendFlow() {
 
   const send = useCallback(
     async (dryRun: boolean) => {
-      if (plan === null || connection.status !== "connected") return;
+      if (plan === null || executor === null) return;
       setError(null);
       setBusy({ label: dryRun ? "Proving the transaction…" : "Confirm in your wallet" });
       const t = trace(dryRun ? "send · dry run" : "send · submit", {
@@ -290,7 +294,7 @@ export function SendFlow() {
         setBusy(null);
       }
     },
-    [plan, connection, executor, fail],
+    [plan, executor, connection, fail],
   );
 
   return (
