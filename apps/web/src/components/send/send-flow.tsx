@@ -25,9 +25,11 @@ import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
 import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
 import { useAccountStatus } from "@/lib/account-status";
-import { explainWalletError, withWalletTimeout } from "@/lib/wallet-error";
+import { explainWalletError } from "@/lib/wallet-error";
 import { trace } from "@/lib/trace";
 import { useWallet } from "@/lib/wallet-context";
+import { walletExecutor } from "@/lib/executor-wallet";
+import { ROUTE, describeRoute } from "@/lib/executor";
 
 type StepId = "connect" | "fund" | "recipients" | "review" | "send";
 
@@ -56,6 +58,12 @@ type Busy = { label: string } | null;
 export function SendFlow() {
   const { connection } = useWallet();
   const status = useAccountStatus();
+
+  // Everything below is route-agnostic: it holds an executor, not a wallet.
+  const executor =
+    connection.status === "connected"
+      ? walletExecutor(connection.account, connection.wallet.name)
+      : null;
 
   const [shieldAmount, setShieldAmount] = useState("25");
   const [recipientText, setRecipientText] = useState(SAMPLE);
@@ -126,6 +134,7 @@ export function SendFlow() {
           : "Approve, then confirm the deposit — your wallet will ask twice",
       });
       const t = trace(dryRun ? "fund · dry run" : "fund · submit", {
+        route: ROUTE,
         wallet: connection.wallet.name,
         address: connection.address,
         walletChainId: connection.chainId,
@@ -143,21 +152,15 @@ export function SendFlow() {
         if (dryRun) {
           // Proving happens inside the wallet and costs nothing on-chain, so this
           // tests the wallet's proving service without spending anything.
-          t.step("calling wallet strk20PrepareInvoke(simulate=true)");
-          const prepared = await withWalletTimeout(
-            connection.account.strk20PrepareInvoke(actions, true),
-            { action: "prove the deposit" },
-          );
-          t.ok("wallet proved the deposit", prepared);
+          t.step(`calling ${executor!.kind} executor: prepare`);
+          const prepared = await executor!.prepare(actions);
+          t.ok("proved the deposit", prepared);
           t.end();
           setFundDryRunOk(true);
           return;
         }
-        t.step("calling wallet strk20InvokeTransaction");
-        const result = await withWalletTimeout(
-          connection.account.strk20InvokeTransaction(actions),
-          { action: "move funds into the pool" },
-        );
+        t.step(`calling ${executor!.kind} executor: invoke`);
+        const result = await executor!.invoke(actions);
         t.ok("submitted", result);
         t.end();
         status.refresh();
@@ -268,20 +271,14 @@ export function SendFlow() {
         // and any ${openNoteIds[N]} placeholders it has to resolve.
         t.step("actions built", actions);
         if (dryRun) {
-          t.step("calling wallet strk20PrepareInvoke(simulate=true)");
-          const prepared = await withWalletTimeout(
-            connection.account.strk20PrepareInvoke(actions, true),
-            { action: "prove the transaction" },
-          );
-          t.ok("wallet proved the batch", prepared);
+          t.step(`calling ${executor!.kind} executor: prepare`);
+          const prepared = await executor!.prepare(actions);
+          t.ok("proved the batch", prepared);
           t.end();
           setDryRunOk(true);
         } else {
-          t.step("calling wallet strk20InvokeTransaction");
-          const { transaction_hash } = await withWalletTimeout(
-            connection.account.strk20InvokeTransaction(actions),
-            { action: "submit the payment" },
-          );
+          t.step(`calling ${executor!.kind} executor: invoke`);
+          const { transaction_hash } = await executor!.invoke(actions);
           t.ok("submitted", { transaction_hash });
           t.end();
           setSentHash(transaction_hash);
@@ -293,7 +290,7 @@ export function SendFlow() {
         setBusy(null);
       }
     },
-    [plan, connection, fail],
+    [plan, connection, executor, fail],
   );
 
   return (
