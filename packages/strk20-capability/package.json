@@ -27,7 +27,7 @@
   "devDependencies": {
     "@starknet-io/get-starknet-wallet-standard": "6.0.3",
     "@starknet-io/types-js": "0.10.3",
-    "starknet": "10.4.0",
+    "starknet": "10.5.0",
     "typescript": "^5",
     "vitest": "^3.2.7"
   }

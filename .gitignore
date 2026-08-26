@@ -22,3 +22,6 @@ target/
 # OS / editor
 .DS_Store
 *.log
+
+# Vendored SDK, rebuilt by scripts/vendor-sdk.sh
+vendor/

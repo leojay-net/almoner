@@ -12,7 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "starknet": "10.4.0"
+    "starknet": "10.5.0"
   },
   "devDependencies": {
     "@types/node": "^20",
