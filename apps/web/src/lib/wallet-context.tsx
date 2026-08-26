@@ -17,6 +17,7 @@ import { walletV6 } from "starknet";
 
 import { connectWalletAccount } from "./wallet-account";
 import { explainWalletError, withWalletTimeout } from "./wallet-error";
+import { trace } from "./trace";
 import {
   getServerWalletsSnapshot,
   getWalletsSnapshot,
@@ -87,14 +88,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const connect = useCallback(async (wallet: DiscoveredWallet) => {
     setConnection({ status: "connecting", walletName: wallet.name });
+    const t = trace("connect", { wallet: wallet.name, version: wallet.version });
     try {
       // Capability first: connecting to a wallet that cannot execute STRK20
       // actions only defers the failure to the first thing you try to do.
+      t.step("querying supported Wallet API versions");
       const support = await detectStrk20Support(wallet);
+      t.ok("capability", support);
+      t.step("requesting accounts");
       const account = await withWalletTimeout(connectWalletAccount(wallet), {
         seconds: 30,
         action: `connect to ${wallet.name}`,
       });
+      t.ok("account", { address: account.address });
       // A wallet pointed at a different network than the app fails every action
       // with an opaque error, because the pool address does not exist there.
       let chainId = "";
@@ -103,8 +109,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           wallet as unknown as Parameters<typeof walletV6.requestChainId>[0],
         );
         chainId = decodeChainId(String(raw));
-      } catch {
+        t.ok("wallet chain", chainId);
+      } catch (chainError) {
         chainId = "";
+        t.step("wallet did not report a chain id", chainError);
       }
       setConnection({
         status: "connected",
@@ -114,8 +122,10 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         support,
         chainId,
       });
+      t.end();
       window.localStorage.setItem(REMEMBERED, wallet.name);
     } catch (error) {
+      t.fail("connect failed", error);
       // Forget it: otherwise a broken extension is retried on every page load.
       window.localStorage.removeItem(REMEMBERED);
       setConnection({

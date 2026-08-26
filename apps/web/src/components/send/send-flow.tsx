@@ -20,12 +20,13 @@ import { Blocker, Figure, StepPanel } from "@/components/send/steps";
 import { Stepper, type StepState } from "@/components/send/stepper";
 import { Button } from "@/components/ui/button";
 import { TextAreaField, TextField } from "@/components/ui/field";
-import { CHAIN_ID, POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
+import { CHAIN_ID, POOL_ADDRESS, POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
 import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
 import { useAccountStatus } from "@/lib/account-status";
 import { explainWalletError, withWalletTimeout } from "@/lib/wallet-error";
+import { trace } from "@/lib/trace";
 import { useWallet } from "@/lib/wallet-context";
 
 type StepId = "connect" | "fund" | "recipients" | "review" | "send";
@@ -124,25 +125,45 @@ export function SendFlow() {
           ? "Proving — nothing is submitted"
           : "Approve, then confirm the deposit — your wallet will ask twice",
       });
+      const t = trace(dryRun ? "fund · dry run" : "fund · submit", {
+        wallet: connection.wallet.name,
+        address: connection.address,
+        walletChainId: connection.chainId,
+        appChainId: CHAIN_ID,
+        walletApiVersions: connection.support.versions,
+        pool: POOL_ADDRESS,
+        token: STRK_TOKEN,
+        amount: `${shieldAmount} STRK`,
+      });
       try {
         const actions: STRK20_ACTION[] = [
           { type: "deposit", token: STRK_TOKEN, amount: `0x${value.toString(16)}` },
         ];
+        t.step("actions built", actions);
         if (dryRun) {
           // Proving happens inside the wallet and costs nothing on-chain, so this
           // tests the wallet's proving service without spending anything.
-          await withWalletTimeout(connection.account.strk20PrepareInvoke(actions, true), {
-            action: "prove the deposit",
-          });
+          t.step("calling wallet strk20PrepareInvoke(simulate=true)");
+          const prepared = await withWalletTimeout(
+            connection.account.strk20PrepareInvoke(actions, true),
+            { action: "prove the deposit" },
+          );
+          t.ok("wallet proved the deposit", prepared);
+          t.end();
           setFundDryRunOk(true);
           return;
         }
-        await withWalletTimeout(connection.account.strk20InvokeTransaction(actions), {
-          action: "move funds into the pool",
-        });
+        t.step("calling wallet strk20InvokeTransaction");
+        const result = await withWalletTimeout(
+          connection.account.strk20InvokeTransaction(actions),
+          { action: "move funds into the pool" },
+        );
+        t.ok("submitted", result);
+        t.end();
         status.refresh();
         setVisited(null);
       } catch (e) {
+        t.fail("wallet call failed", e);
         fail(e);
       } finally {
         setBusy(null);
@@ -164,8 +185,15 @@ export function SendFlow() {
       return;
     }
     setBusy({ label: "Checking which recipients already use the pool…" });
+    const t = trace("review · build plan", {
+      recipients: parsed.recipients.length,
+      refundAddress,
+      expiryDays,
+    });
     try {
+      t.step("checking recipient registration on-chain");
       const found = await checkRegistrations(parsed.recipients.map((r) => r.address));
+      t.ok("registration checked", Object.fromEntries(found));
       const days = Number(expiryDays);
       const expiry =
         Number.isFinite(days) && days > 0
@@ -178,11 +206,19 @@ export function SendFlow() {
         registered: found.get(r.address) === "registered",
       }));
       setStatuses(found);
-      setPlan(planBatch(payouts, { refundRecipient: refundAddress, expiry }));
+      const built = planBatch(payouts, { refundRecipient: refundAddress, expiry });
+      t.ok("plan built", {
+        direct: built.direct.length,
+        escrowed: built.escrowed.length,
+        totals: Object.fromEntries([...built.totals].map(([k, v]) => [k, v.toString()])),
+      });
+      t.end();
+      setPlan(built);
       setExported(false);
       setDryRunOk(false);
       setVisited(null);
     } catch (e) {
+      t.fail("could not build the plan", e);
       fail(e);
     } finally {
       setBusy(null);
@@ -217,21 +253,41 @@ export function SendFlow() {
       if (plan === null || connection.status !== "connected") return;
       setError(null);
       setBusy({ label: dryRun ? "Proving the transaction…" : "Confirm in your wallet" });
+      const t = trace(dryRun ? "send · dry run" : "send · submit", {
+        wallet: connection.status === "connected" ? connection.wallet.name : null,
+        walletChainId: connection.status === "connected" ? connection.chainId : null,
+        appChainId: CHAIN_ID,
+        escrow: ESCROW_ADDRESS,
+        pool: POOL_ADDRESS,
+        direct: plan.direct.length,
+        escrowed: plan.escrowed.length,
+      });
       try {
         const actions = buildFundActions(plan, { escrowAddress: ESCROW_ADDRESS });
+        // The exact payload handed to the wallet, including the phase ordering
+        // and any ${openNoteIds[N]} placeholders it has to resolve.
+        t.step("actions built", actions);
         if (dryRun) {
-          await withWalletTimeout(connection.account.strk20PrepareInvoke(actions, true), {
-            action: "prove the transaction",
-          });
+          t.step("calling wallet strk20PrepareInvoke(simulate=true)");
+          const prepared = await withWalletTimeout(
+            connection.account.strk20PrepareInvoke(actions, true),
+            { action: "prove the transaction" },
+          );
+          t.ok("wallet proved the batch", prepared);
+          t.end();
           setDryRunOk(true);
         } else {
+          t.step("calling wallet strk20InvokeTransaction");
           const { transaction_hash } = await withWalletTimeout(
             connection.account.strk20InvokeTransaction(actions),
             { action: "submit the payment" },
           );
+          t.ok("submitted", { transaction_hash });
+          t.end();
           setSentHash(transaction_hash);
         }
       } catch (e) {
+        t.fail("wallet call failed", e);
         fail(e);
       } finally {
         setBusy(null);
