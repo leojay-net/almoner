@@ -67,6 +67,7 @@ export function SendFlow() {
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
   const [dryRunOk, setDryRunOk] = useState(false);
+  const [fundDryRunOk, setFundDryRunOk] = useState(false);
   const [sentHash, setSentHash] = useState<string | null>(null);
   const [visited, setVisited] = useState<StepId | null>(null);
 
@@ -105,33 +106,50 @@ export function SendFlow() {
     [feeLabel],
   );
 
-  const shield = useCallback(async () => {
-    if (connection.status !== "connected") return;
-    setError(null);
-    let value: bigint;
-    try {
-      value = parseDecimalAmount(shieldAmount, 18);
-      if (value <= 0n) throw new Error("Enter an amount greater than zero.");
-    } catch (e) {
-      fail(e);
-      return;
-    }
-    setBusy({ label: "Approve, then confirm the deposit — your wallet will ask twice" });
-    try {
-      const actions: STRK20_ACTION[] = [
-        { type: "deposit", token: STRK_TOKEN, amount: `0x${value.toString(16)}` },
-      ];
-      await withWalletTimeout(connection.account.strk20InvokeTransaction(actions), {
-        action: "move funds into the pool",
+  const shield = useCallback(
+    async (dryRun: boolean) => {
+      if (connection.status !== "connected") return;
+      setError(null);
+      setFundDryRunOk(false);
+      let value: bigint;
+      try {
+        value = parseDecimalAmount(shieldAmount, 18);
+        if (value <= 0n) throw new Error("Enter an amount greater than zero.");
+      } catch (e) {
+        fail(e);
+        return;
+      }
+      setBusy({
+        label: dryRun
+          ? "Proving — nothing is submitted"
+          : "Approve, then confirm the deposit — your wallet will ask twice",
       });
-      status.refresh();
-      setVisited(null);
-    } catch (e) {
-      fail(e);
-    } finally {
-      setBusy(null);
-    }
-  }, [connection, shieldAmount, status, fail]);
+      try {
+        const actions: STRK20_ACTION[] = [
+          { type: "deposit", token: STRK_TOKEN, amount: `0x${value.toString(16)}` },
+        ];
+        if (dryRun) {
+          // Proving happens inside the wallet and costs nothing on-chain, so this
+          // tests the wallet's proving service without spending anything.
+          await withWalletTimeout(connection.account.strk20PrepareInvoke(actions, true), {
+            action: "prove the deposit",
+          });
+          setFundDryRunOk(true);
+          return;
+        }
+        await withWalletTimeout(connection.account.strk20InvokeTransaction(actions), {
+          action: "move funds into the pool",
+        });
+        status.refresh();
+        setVisited(null);
+      } catch (e) {
+        fail(e);
+      } finally {
+        setBusy(null);
+      }
+    },
+    [connection, shieldAmount, status, fail],
+  );
 
   const review = useCallback(async () => {
     setError(null);
@@ -256,9 +274,19 @@ export function SendFlow() {
             title="Fund your private balance"
             description="Payments come out of a balance held inside the pool, and this account does not have one yet. Moving STRK in also registers you, which is what lets you be paid privately later."
             footer={
-              <Button size="lg" disabled={busy !== null} onClick={() => void shield()}>
-                {busy ? busy.label : `Move ${shieldAmount || "0"} STRK in`}
-              </Button>
+              <>
+                <Button
+                  size="lg"
+                  variant="secondary"
+                  disabled={busy !== null}
+                  onClick={() => void shield(true)}
+                >
+                  Test first
+                </Button>
+                <Button size="lg" disabled={busy !== null} onClick={() => void shield(false)}>
+                  {busy ? busy.label : `Move ${shieldAmount || "0"} STRK in`}
+                </Button>
+              </>
             }
           >
             <div className="max-w-sm">
@@ -270,9 +298,17 @@ export function SendFlow() {
                 hint={`Cover what you plan to send plus the ${formatUnits(POOL_FEE_FRI)} STRK pool fee. You can always add more.`}
               />
             </div>
+            {fundDryRunOk ? (
+              <p className="mt-5 flex items-center gap-2 rounded-card border border-positive/35 bg-positive-wash p-4 text-sm">
+                <Check className="size-4 shrink-0 text-positive" />
+                Proved cleanly without submitting. Your wallet can do this — go ahead.
+              </p>
+            ) : null}
             <p className="mt-5 text-sm leading-relaxed text-text-secondary">
               This step is public: the amount and your address are visible on-chain. Everything
-              you do afterwards is not.
+              you do afterwards is not. <strong>Test first</strong> proves the transaction inside
+              your wallet without submitting it or spending anything — worth doing once to
+              confirm the wallet can reach its proving service.
             </p>
           </StepPanel>
         ) : null}
