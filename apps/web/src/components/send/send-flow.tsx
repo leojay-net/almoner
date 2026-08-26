@@ -25,6 +25,7 @@ import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
 import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
 import { useAccountStatus } from "@/lib/account-status";
+import { explainWalletError } from "@/lib/wallet-error";
 import { useWallet } from "@/lib/wallet-context";
 
 type StepId = "connect" | "fund" | "recipients" | "review" | "send";
@@ -98,7 +99,11 @@ export function SendFlow() {
     }),
   ) as Record<string, StepState>;
 
-  const fail = (e: unknown) => setError(e instanceof Error ? e.message : String(e));
+  const feeLabel = `${formatUnits(POOL_FEE_FRI)} STRK`;
+  const fail = useCallback(
+    (e: unknown) => setError(explainWalletError(e, { feeLabel })),
+    [feeLabel],
+  );
 
   const shield = useCallback(async () => {
     if (connection.status !== "connected") return;
@@ -124,7 +129,7 @@ export function SendFlow() {
     } finally {
       setBusy(null);
     }
-  }, [connection, shieldAmount, status]);
+  }, [connection, shieldAmount, status, fail]);
 
   const review = useCallback(async () => {
     setError(null);
@@ -162,7 +167,7 @@ export function SendFlow() {
     } finally {
       setBusy(null);
     }
-  }, [parsed, refundAddress, expiryDays]);
+  }, [parsed, refundAddress, expiryDays, fail]);
 
   const exportLinks = useCallback(() => {
     if (plan === null) return;
@@ -202,17 +207,12 @@ export function SendFlow() {
           setSentHash(transaction_hash);
         }
       } catch (e) {
-        const raw = e instanceof Error ? e.message : String(e);
-        setError(
-          /unknown_error/i.test(raw)
-            ? `${raw} — your wallet could not build this. The usual cause is too little shielded balance for the payouts plus the ${formatUnits(POOL_FEE_FRI)} STRK pool fee.`
-            : raw,
-        );
+        fail(e);
       } finally {
         setBusy(null);
       }
     },
-    [plan, connection],
+    [plan, connection, fail],
   );
 
   return (
@@ -411,9 +411,9 @@ export function SendFlow() {
       </AnimatePresence>
 
       {error ? (
-        <p className="rounded-card border border-critical/35 bg-critical-wash p-4 text-sm leading-relaxed">
+        <div className="rounded-card border border-critical/35 bg-critical-wash p-4 text-sm leading-relaxed whitespace-pre-line">
           {error}
-        </p>
+        </div>
       ) : null}
     </div>
   );
