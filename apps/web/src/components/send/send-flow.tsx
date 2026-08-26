@@ -176,7 +176,7 @@ export function SendFlow() {
         setBusy(null);
       }
     },
-    [connection, shieldAmount, status, fail],
+    [executor, connection, shieldAmount, status, fail],
   );
 
   const review = useCallback(async () => {
