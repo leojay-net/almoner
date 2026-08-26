@@ -18,7 +18,7 @@ import { POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { Button } from "@/components/ui/button";
 import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
-import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
+import { checkRegistration, checkRegistrations, type RegistrationStatus } from "@/lib/registration";
 import { useWallet } from "@/lib/wallet-context";
 
 const SAMPLE = `# address, amount
@@ -133,6 +133,21 @@ export function PayerPanel() {
         setStage({ kind: "error", message: describeStrk20Support(connection.support) });
         return;
       }
+      // Pre-flight: a payer who never registered a viewing key has no shielded
+      // balance, so the batch's withdrawal leg cannot be built. The wallet
+      // reports that as an opaque UNKNOWN_ERROR, so check the public
+      // registration event first and say what is actually wrong.
+      setStage({ kind: "working", label: "Checking your pool registration…" });
+      const registration = await checkRegistration(connection.address);
+      if (registration === "unregistered") {
+        setStage({
+          kind: "error",
+          message:
+            "This account has never registered with the pool, so it has no shielded balance to pay from. Shield some STRK first — that registers you and creates the balance.",
+        });
+        return;
+      }
+
       setStage({ kind: "working", label: dryRun ? "Proving…" : "Waiting for your wallet…" });
       try {
         const { account } = connection;
@@ -146,10 +161,13 @@ export function PayerPanel() {
         const { transaction_hash } = await account.strk20InvokeTransaction(actions);
         setStage({ kind: "submitted", hash: transaction_hash, plan });
       } catch (error) {
-        setStage({
-          kind: "error",
-          message: error instanceof Error ? error.message : String(error),
-        });
+        const raw = error instanceof Error ? error.message : String(error);
+        // Wallets return UNKNOWN_ERROR for almost anything they could not build.
+        // Say what it usually means instead of forwarding a dead end.
+        const hint = /unknown_error/i.test(raw)
+          ? " Your wallet could not build this transaction. The usual cause is too little shielded balance for the amounts plus the pool fee."
+          : "";
+        setStage({ kind: "error", message: `${raw}${hint}` });
       }
     },
     [connection],

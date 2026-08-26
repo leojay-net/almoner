@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { ArrowRight, Inbox, Send, Wallet } from "@/components/icons";
+import { ArrowRight, Inbox, Send, Shield as ShieldIcon } from "@/components/icons";
 import { RevealGroup, RevealItem } from "@/components/motion/primitives";
 import { PageHeader } from "@/components/shell/page-header";
 import { Card } from "@/components/ui/card";
@@ -89,6 +89,12 @@ function Stat({
 
 const ACTIONS = [
   {
+    href: "/app/shield",
+    icon: ShieldIcon,
+    title: "Shield first",
+    body: "Move STRK into the pool. This registers you and creates the balance a batch is paid from — nothing else works until it is done.",
+  },
+  {
     href: "/app/pay",
     icon: Send,
     title: "Pay a batch",
@@ -99,11 +105,5 @@ const ACTIONS = [
     icon: Inbox,
     title: "Claim a payment",
     body: "Redeem a claim link into a shielded balance only you can read.",
-  },
-  {
-    href: "/app/wallet",
-    icon: Wallet,
-    title: "Check your wallet",
-    body: "Confirm your wallet implements the STRK20 methods before you rely on it.",
   },
 ] as const;
