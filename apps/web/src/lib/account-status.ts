@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 
+import { CHAIN_ID } from "./chain";
 import { checkRegistration, type RegistrationStatus } from "./registration";
 import { useWallet } from "./wallet-context";
 
@@ -10,6 +11,8 @@ export type Readiness =
   | "no-wallet"
   /** Connected, but this wallet cannot execute STRK20 actions. */
   | "wallet-unsupported"
+  /** Connected, but the wallet is pointed at a different network than the app. */
+  | "wrong-network"
   /** Working out whether the account has a pool position. */
   | "checking"
   /** Connected and able to sign, but has never registered — so no balance. */
@@ -19,6 +22,8 @@ export type Readiness =
 
 export interface AccountStatus {
   readiness: Readiness;
+  /** What the wallet reports, when it differs from what the app expects. */
+  walletChainId: string | null;
   registration: RegistrationStatus | null;
   address: string | null;
   refresh: () => void;
@@ -60,11 +65,18 @@ export function useAccountStatus(): AccountStatus {
 
   let readiness: Readiness = "no-wallet";
   if (connection.status === "connected") {
-    if (!connection.support.supported) readiness = "wallet-unsupported";
+    if (connection.chainId !== "" && connection.chainId !== CHAIN_ID) readiness = "wrong-network";
+    else if (!connection.support.supported) readiness = "wallet-unsupported";
     else if (registration === null) readiness = "checking";
     else if (registration === "registered") readiness = "ready";
     else readiness = "needs-funding";
   }
 
-  return { readiness, registration, address, refresh };
+  return {
+    readiness,
+    walletChainId: connection.status === "connected" ? connection.chainId : null,
+    registration,
+    address,
+    refresh,
+  };
 }

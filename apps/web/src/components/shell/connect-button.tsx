@@ -6,6 +6,7 @@ import { Wallet } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { Pill } from "@/components/ui/pill";
+import { CHAIN_ID } from "@/lib/chain";
 import { shortenFelt } from "@/lib/format";
 import { useWallet, walletKey, type DiscoveredWallet } from "@/lib/wallet-context";
 
@@ -18,7 +19,8 @@ export function ConnectButton() {
   }
 
   if (connection.status === "connected") {
-    const usable = connection.support.supported;
+    const wrongNetwork = connection.chainId !== "" && connection.chainId !== CHAIN_ID;
+    const usable = connection.support.supported && !wrongNetwork;
     return (
       <div className="flex items-center gap-2">
         {usable ? null : <Pill tone="caution">Cannot sign STRK20</Pill>}
@@ -35,6 +37,9 @@ export function ConnectButton() {
             aria-hidden
           />
           <span className="hidden font-medium sm:inline">{connection.wallet.name}</span>
+          {connection.chainId && connection.chainId !== CHAIN_ID ? (
+            <span className="text-xs font-medium text-caution">{connection.chainId}</span>
+          ) : null}
           <span className="font-mono text-xs text-text-muted">
             {shortenFelt(connection.address, 6, 4)}
           </span>

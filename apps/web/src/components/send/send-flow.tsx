@@ -20,7 +20,7 @@ import { Blocker, Figure, StepPanel } from "@/components/send/steps";
 import { Stepper, type StepState } from "@/components/send/stepper";
 import { Button } from "@/components/ui/button";
 import { TextAreaField, TextField } from "@/components/ui/field";
-import { POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
+import { CHAIN_ID, POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
 import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
@@ -226,7 +226,13 @@ export function SendFlow() {
             title="Connect your wallet"
             description="Your wallet holds the viewing key and generates the proof for every private action. This app never sees either."
           >
-            {status.readiness === "wallet-unsupported" && connection.status === "connected" ? (
+            {status.readiness === "wrong-network" ? (
+              <Blocker title="Your wallet is on a different network">
+                This app is configured for <strong>{CHAIN_ID}</strong>, but your wallet reports{" "}
+                <strong>{status.walletChainId}</strong>. Nothing here will work until they match —
+                switch networks in the wallet, then reconnect.
+              </Blocker>
+            ) : status.readiness === "wallet-unsupported" && connection.status === "connected" ? (
               <Blocker title="This wallet cannot sign STRK20 actions">
                 {describeStrk20Support(connection.support)} Disconnect and try another wallet —
                 Ready is the one known to support it.
