@@ -16,6 +16,7 @@ import {
   Shield,
   Wallet,
 } from "@/components/icons";
+import { ConnectButton } from "@/components/shell/connect-button";
 
 const ITEMS = [
   { href: "/app", label: "Overview", icon: Layers },
@@ -105,14 +106,17 @@ export function MobileNav() {
     <>
       <div className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-line bg-canvas/85 px-4 backdrop-blur-xl lg:hidden">
         <Brand />
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          aria-label="Open navigation"
-          className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
-        >
-          <Menu className="size-5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <ConnectButton />
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            aria-label="Open navigation"
+            className="rounded-lg p-2 text-text-secondary transition-colors hover:bg-surface-hover hover:text-text-primary"
+          >
+            <Menu className="size-5" />
+          </button>
+        </div>
       </div>
 
       <AnimatePresence>

@@ -1,21 +1,13 @@
 "use client";
 
-import { useCallback, useState, useSyncExternalStore } from "react";
+import { useCallback, useState } from "react";
 import type { STRK20_ACTION } from "@starknet-io/types-js";
 import { parseDecimalAmount } from "@almoner/core";
-import { describeStrk20Support, detectStrk20Support } from "@almoner/strk20-capability";
+import { describeStrk20Support } from "@almoner/strk20-capability";
 
 import { POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { formatUnits, shortenFelt } from "@/lib/format";
-import { connectWalletAccount } from "@/lib/wallet-account";
-import {
-  getServerWalletsSnapshot,
-  getWalletsSnapshot,
-  subscribeNever,
-  subscribeToWallets,
-  walletKey,
-  type DiscoveredWallet,
-} from "@/lib/wallets";
+import { useWallet } from "@/lib/wallet-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TextField } from "@/components/ui/field";
@@ -38,19 +30,10 @@ export function ShieldPanel() {
   const [amount, setAmount] = useState("10");
   const [state, setState] = useState<State>({ kind: "idle" });
 
-  const wallets = useSyncExternalStore(
-    subscribeToWallets,
-    getWalletsSnapshot,
-    getServerWalletsSnapshot,
-  );
-  const hydrated = useSyncExternalStore(
-    subscribeNever,
-    () => true,
-    () => false,
-  );
+  const { connection } = useWallet();
 
   const shield = useCallback(
-    async (wallet: DiscoveredWallet) => {
+    async () => {
       let value: bigint;
       try {
         value = parseDecimalAmount(amount, 18);
@@ -63,15 +46,17 @@ export function ShieldPanel() {
         return;
       }
 
-      setState({ kind: "working", label: "Checking wallet support…" });
-      try {
-        const support = await detectStrk20Support(wallet);
-        if (!support.supported) {
-          setState({ kind: "error", message: describeStrk20Support(support) });
-          return;
-        }
+      if (connection.status !== "connected") {
+        setState({ kind: "error", message: "Connect a wallet first." });
+        return;
+      }
+      if (!connection.support.supported) {
+        setState({ kind: "error", message: describeStrk20Support(connection.support) });
+        return;
+      }
 
-        const account = await connectWalletAccount(wallet);
+      try {
+        const { account } = connection;
         // A shield is two prompts: the ERC-20 approve has to land on-chain before
         // the private deposit. Saying so up front stops the second prompt reading
         // as a duplicate-transaction bug.
@@ -89,12 +74,11 @@ export function ShieldPanel() {
         });
       }
     },
-    [amount],
+    [amount, connection],
   );
 
-  if (!hydrated) return <p className="text-sm text-text-muted">Loading…</p>;
-
   const busy = state.kind === "working";
+  const ready = connection.status === "connected" && connection.support.supported;
 
   return (
     <div className="space-y-6">
@@ -113,25 +97,14 @@ export function ShieldPanel() {
         />
       </Card>
 
-      {wallets.length === 0 ? (
-        <p className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">
-          No Starknet wallet detected. Install Ready and switch it to the network this app is
-          configured for.
-        </p>
+      {connection.status === "connected" ? (
+        <Button size="lg" disabled={busy || !ready} onClick={() => void shield()}>
+          {busy ? "Working…" : `Shield ${amount || "0"} STRK`}
+        </Button>
       ) : (
-        <ul className="space-y-2">
-          {wallets.map((wallet) => (
-            <li
-              key={walletKey(wallet)}
-              className="flex items-center justify-between gap-3 rounded-card border border-line p-3"
-            >
-              <span className="truncate text-sm font-medium">{wallet.name}</span>
-              <Button size="sm" disabled={busy} onClick={() => void shield(wallet)}>
-                Shield
-              </Button>
-            </li>
-          ))}
-        </ul>
+        <p className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">
+          Connect a wallet to shield. Use the button in the top right.
+        </p>
       )}
 
       {state.kind === "working" ? (
