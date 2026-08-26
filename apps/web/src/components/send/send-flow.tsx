@@ -369,7 +369,18 @@ export function SendFlow() {
           </StepPanel>
         ) : null}
 
-        {current === "recipients" ? (
+        {current === "recipients" && ESCROW_ADDRESS === "" ? (
+          <StepPanel
+            key="no-escrow"
+            title="Escrow not deployed on this network"
+            description={`Paying someone who has never used the pool needs the Almoner escrow contract, and it is not deployed on ${CHAIN_ID} yet.`}
+          >
+            <Blocker title="You can still test the earlier steps">
+              Funding your private balance works without the escrow — it is only needed once you
+              pay a recipient who is not already registered with the pool.
+            </Blocker>
+          </StepPanel>
+        ) : current === "recipients" ? (
           <StepPanel
             key="recipients"
             title="Who are you paying?"
