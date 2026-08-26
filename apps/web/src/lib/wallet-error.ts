@@ -51,6 +51,19 @@ function safeJson(value: unknown): string {
 export function explainWalletError(error: unknown, context: { feeLabel: string }): string {
   const detail = describeWalletError(error);
 
+  // Registration is a distinct on-chain step and is not expressible as a
+  // STRK20_ACTION — the action union is deposit | withdraw | transfer | invoke.
+  // It has to be done by the wallet itself or through the official app.
+  if (/not_registered/i.test(detail)) {
+    return (
+      "This account has not registered a viewing key with the pool yet, which every pool user " +
+      "does once before they can hold a private balance.\n\n" +
+      "Registration is not something a dapp can trigger — it is not one of the actions the " +
+      "Wallet API exposes. Do it through your wallet's own privacy section, or at " +
+      "strk20.starknet.io/app, then come back and this step will work."
+    );
+  }
+
   if (/receiving end does not exist|could not establish connection|disconnected port/i.test(detail)) {
     return `${detail}\n\nYour wallet extension is not responding. Its background worker has most likely gone to sleep — open the wallet from the toolbar so it wakes up, then try again. Reloading the extension or restarting the browser also clears it.`;
   }

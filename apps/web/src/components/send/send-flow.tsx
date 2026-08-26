@@ -360,6 +360,27 @@ export function SendFlow() {
                 Proved cleanly without submitting. Your wallet can do this — go ahead.
               </p>
             ) : null}
+            {status.registration === "unregistered" ? (
+              <Blocker title="Register with the pool first">
+                <p>
+                  Every pool user registers a viewing key once, on-chain, before they can hold a
+                  private balance. This account has not.
+                </p>
+                <p className="mt-2">
+                  A dapp cannot do this for you — registration is not one of the actions the
+                  Wallet API exposes. Do it in your wallet&rsquo;s privacy section, or at{" "}
+                  <a
+                    href="https://strk20.starknet.io/app"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-accent underline underline-offset-2"
+                  >
+                    strk20.starknet.io/app
+                  </a>
+                  , then reload this page.
+                </p>
+              </Blocker>
+            ) : null}
             <p className="mt-5 text-sm leading-relaxed text-text-secondary">
               This step is public: the amount and your address are visible on-chain. Everything
               you do afterwards is not. <strong>Test first</strong> proves the transaction inside
