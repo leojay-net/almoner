@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   POOL_FEE_FRI,
   buildFundActions,
@@ -10,21 +10,14 @@ import {
   type BatchPlan,
   type Payout,
 } from "@almoner/core";
-import { describeStrk20Support, detectStrk20Support } from "@almoner/strk20-capability";
+import { describeStrk20Support } from "@almoner/strk20-capability";
 
 import { STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
+import { Button } from "@/components/ui/button";
 import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
 import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
-import { connectWalletAccount } from "@/lib/wallet-account";
-import {
-  getServerWalletsSnapshot,
-  getWalletsSnapshot,
-  subscribeNever,
-  subscribeToWallets,
-  walletKey,
-  type DiscoveredWallet,
-} from "@/lib/wallets";
+import { useWallet } from "@/lib/wallet-context";
 
 const SAMPLE = `# address, amount
 0x02b3f4c1a9d8e7b6a5c4d3e2f1098765432109876543210987654321098765, 12.5
@@ -46,16 +39,12 @@ export function PayerPanel() {
   const [stage, setStage] = useState<Stage>({ kind: "compose" });
   const [exported, setExported] = useState(false);
 
-  const wallets = useSyncExternalStore(
-    subscribeToWallets,
-    getWalletsSnapshot,
-    getServerWalletsSnapshot,
-  );
-  const hydrated = useSyncExternalStore(
-    subscribeNever,
-    () => true,
-    () => false,
-  );
+  const { connection } = useWallet();
+  // The refund address is required and is almost always the payer's own account.
+  // Making someone paste an address the app already knows is friction for its own
+  // sake - they can still override it.
+  const connectedAddress = connection.status === "connected" ? connection.address : "";
+  const refundAddress = refund.trim() === "" ? connectedAddress : refund.trim();
 
   const parsed = useMemo(() => parseRecipients(text, { decimals: 18 }), [text]);
 
@@ -67,7 +56,7 @@ export function PayerPanel() {
     }
     let refundRecipient: string;
     try {
-      refundRecipient = refund.trim();
+      refundRecipient = refundAddress;
       if (BigInt(refundRecipient) === 0n) throw new Error("zero");
     } catch {
       setStage({ kind: "error", message: "Enter a valid refund address." });
@@ -104,7 +93,7 @@ export function PayerPanel() {
         message: error instanceof Error ? error.message : String(error),
       });
     }
-  }, [parsed, refund, expiryDays]);
+  }, [parsed, refundAddress, expiryDays]);
 
   const exportLinks = useCallback((plan: BatchPlan) => {
     const origin = window.location.origin;
@@ -132,33 +121,37 @@ export function PayerPanel() {
     setExported(true);
   }, []);
 
-  const submit = useCallback(async (wallet: DiscoveredWallet, plan: BatchPlan, dryRun: boolean) => {
-    setStage({ kind: "working", label: dryRun ? "Proving…" : "Waiting for your wallet…" });
-    try {
-      const support = await detectStrk20Support(wallet);
-      if (!support.supported) {
-        setStage({ kind: "error", message: describeStrk20Support(support) });
+  const submit = useCallback(
+    async (plan: BatchPlan, dryRun: boolean) => {
+      if (connection.status !== "connected") {
+        setStage({ kind: "error", message: "Connect a wallet first." });
         return;
       }
-      const account = await connectWalletAccount(wallet);
-      const actions = buildFundActions(plan, { escrowAddress: ESCROW_ADDRESS });
-
-      if (dryRun) {
-        await account.strk20PrepareInvoke(actions, true);
-        setStage({ kind: "dry-run-ok" });
+      if (!connection.support.supported) {
+        setStage({ kind: "error", message: describeStrk20Support(connection.support) });
         return;
       }
-      const { transaction_hash } = await account.strk20InvokeTransaction(actions);
-      setStage({ kind: "submitted", hash: transaction_hash, plan });
-    } catch (error) {
-      setStage({
-        kind: "error",
-        message: error instanceof Error ? error.message : String(error),
-      });
-    }
-  }, []);
+      setStage({ kind: "working", label: dryRun ? "Proving…" : "Waiting for your wallet…" });
+      try {
+        const { account } = connection;
+        const actions = buildFundActions(plan, { escrowAddress: ESCROW_ADDRESS });
 
-  if (!hydrated) return <p className="text-sm text-text-muted">Loading…</p>;
+        if (dryRun) {
+          await account.strk20PrepareInvoke(actions, true);
+          setStage({ kind: "dry-run-ok" });
+          return;
+        }
+        const { transaction_hash } = await account.strk20InvokeTransaction(actions);
+        setStage({ kind: "submitted", hash: transaction_hash, plan });
+      } catch (error) {
+        setStage({
+          kind: "error",
+          message: error instanceof Error ? error.message : String(error),
+        });
+      }
+    },
+    [connection],
+  );
 
   return (
     <div className="space-y-8">
@@ -189,7 +182,11 @@ export function PayerPanel() {
               id="refund"
               value={refund}
               onChange={(event) => setRefund(event.target.value)}
-              placeholder="0x…"
+              placeholder={
+                connectedAddress === ""
+                  ? "0x…"
+                  : `${connectedAddress.slice(0, 14)}… (connected wallet)`
+              }
               spellCheck={false}
               className="mt-2 w-full rounded-card border border-line bg-transparent p-2 font-mono text-xs "
             />
@@ -231,10 +228,10 @@ export function PayerPanel() {
         <ReviewSection
           plan={stage.plan}
           statuses={stage.statuses}
-          wallets={wallets}
+          connected={connection.status === "connected"}
           exported={exported}
           onExport={() => exportLinks(stage.plan)}
-          onSubmit={(wallet, dryRun) => void submit(wallet, stage.plan, dryRun)}
+          onSubmit={(dryRun) => void submit(stage.plan, dryRun)}
         />
       ) : null}
 
@@ -267,17 +264,17 @@ function ParseSummary({ parsed }: { parsed: ReturnType<typeof parseRecipients> }
 function ReviewSection({
   plan,
   statuses,
-  wallets,
+  connected,
   exported,
   onExport,
   onSubmit,
 }: {
   plan: BatchPlan;
   statuses: Map<string, RegistrationStatus>;
-  wallets: readonly DiscoveredWallet[];
+  connected: boolean;
   exported: boolean;
   onExport: () => void;
-  onSubmit: (wallet: DiscoveredWallet, dryRun: boolean) => void;
+  onSubmit: (dryRun: boolean) => void;
 }) {
   const total = [...plan.totals.values()].reduce((sum, value) => sum + value, 0n);
   const unknown = [...statuses.values()].filter((status) => status === "unknown").length;
@@ -326,43 +323,30 @@ function ReviewSection({
         </div>
       ) : null}
 
-      {wallets.length === 0 ? (
-        <p className="text-sm text-text-muted">
-          No Starknet wallet detected. Install Ready or Braavos and switch to Mainnet.
-        </p>
+      {connected ? (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" onClick={() => onSubmit(true)}>
+            Dry run
+          </Button>
+          <Button
+            onClick={() => onSubmit(false)}
+            disabled={plan.escrowed.length > 0 && !exported}
+            title={
+              plan.escrowed.length > 0 && !exported ? "Download the claim links first" : undefined
+            }
+          >
+            Fund batch
+          </Button>
+          {plan.escrowed.length > 0 && !exported ? (
+            <p className="w-full text-xs text-text-muted">
+              Funding stays disabled until the claim links are saved.
+            </p>
+          ) : null}
+        </div>
       ) : (
-        <ul className="space-y-2">
-          {wallets.map((wallet) => (
-            <li
-              key={walletKey(wallet)}
-              className="flex items-center justify-between gap-3 rounded-card border border-line p-3 "
-            >
-              <span className="truncate text-sm font-medium">{wallet.name}</span>
-              <span className="flex shrink-0 gap-2">
-                <button
-                  type="button"
-                  onClick={() => onSubmit(wallet, true)}
-                  className="rounded-md border border-line px-3 py-1.5 text-sm transition hover:bg-surface-hover "
-                >
-                  Dry run
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onSubmit(wallet, false)}
-                  disabled={plan.escrowed.length > 0 && !exported}
-                  title={
-                    plan.escrowed.length > 0 && !exported
-                      ? "Download the claim links first"
-                      : undefined
-                  }
-                  className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40"
-                >
-                  Fund batch
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
+        <p className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">
+          Connect a wallet to fund this batch. Use the button in the top right.
+        </p>
       )}
     </section>
   );

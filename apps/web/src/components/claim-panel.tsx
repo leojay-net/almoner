@@ -7,6 +7,7 @@ import {
   decodeClaimLink,
   type ClaimLinkPayload,
 } from "@almoner/core";
+import { Button } from "@/components/ui/button";
 import { detectStrk20Support, describeStrk20Support } from "@almoner/strk20-capability";
 
 import { VOYAGER_TX_URL } from "@/lib/chain";
@@ -142,12 +143,7 @@ export function ClaimPanel() {
   }
 
   if (payload === null) {
-    return (
-      <Notice tone="warn" title="No valid claim link">
-        Open the link you were sent, in full. The secret travels in the part of the URL after{" "}
-        <code>#</code>, so it is lost if the link is retyped or truncated.
-      </Notice>
-    );
+    return <ClaimLinkEntry onAccept={setPayload} />;
   }
 
   return (
@@ -168,6 +164,73 @@ export function ClaimPanel() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * Entry point for someone who arrived without a working link.
+ *
+ * A link can lose its fragment in a dozen ordinary ways - pasted into a chat that
+ * strips it, retyped, forwarded as plain text. Refusing to proceed and telling
+ * the reader to go find a better link is a dead end, so accept the thing they
+ * actually have: the whole URL, or just the code from the end of it.
+ */
+function ClaimLinkEntry({ onAccept }: { onAccept: (payload: ClaimLinkPayload) => void }) {
+  const [value, setValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    const parsed = decodeClaimLink(value.trim());
+    if (parsed === null) {
+      setError(
+        "That does not look like a claim link. Paste the whole link, or just the code after the #.",
+      );
+      return;
+    }
+    setError(null);
+    // Put it back in the address bar so a reload keeps working and the page can
+    // be re-shared - without ever sending the secret to a server.
+    window.location.hash = window.location.hash || "";
+    history.replaceState(null, "", `#s=${parsed.secret}&t=${parsed.token}`);
+    onAccept(parsed);
+  };
+
+  return (
+    <form onSubmit={submit} className="space-y-5">
+      <div className="rounded-card border border-line bg-surface p-6">
+        <label htmlFor="claim-link" className="block text-sm font-medium">
+          Paste your claim link or code
+        </label>
+        <p className="mt-1 text-sm text-text-secondary">
+          Either the whole link you were sent, or just the code from the end of it.
+        </p>
+        <input
+          id="claim-link"
+          value={value}
+          onChange={(event) => {
+            setValue(event.target.value);
+            if (error) setError(null);
+          }}
+          autoFocus
+          spellCheck={false}
+          placeholder="https://…/claim#s=0x…&t=0x…"
+          className="mt-4 w-full rounded-xl border border-line bg-surface-raised px-3.5 py-2.5 font-mono text-xs transition-colors hover:border-line-strong focus:border-accent focus:ring-4 focus:ring-accent-wash focus:outline-none"
+        />
+        {error ? <p className="mt-3 text-sm text-critical">{error}</p> : null}
+        <div className="mt-5">
+          <Button type="submit" disabled={value.trim() === ""}>
+            Continue
+          </Button>
+        </div>
+      </div>
+
+      <p className="text-xs leading-relaxed text-text-muted">
+        Pasting it here keeps the secret in your browser. It is never sent to a server — the app
+        only ever asks the network about the commitment hash derived from it, which is public
+        on-chain anyway.
+      </p>
+    </form>
   );
 }
 
