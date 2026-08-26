@@ -21,6 +21,8 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
-    "prettier": "^3.4.2"
+    "@starkware-libs/starknet-privacy-sdk": "file:vendor/starknet-privacy-sdk",
+    "prettier": "^3.4.2",
+    "starknet": "10.5.0"
   }
 }

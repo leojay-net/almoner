@@ -29,6 +29,37 @@ debugging time:
 Consequence: the Sepolia escrow at `0x055e0d…8e8e` is deployed and healthy but cannot
 be exercised end to end, because no wallet will prove against Sepolia.
 
+## Route B proved on Sepolia, 26 Aug
+
+**A real proof was generated against the Sepolia pool in ~6s** — the first time
+anything in this project has exercised the pool's write path. Reproduce with
+`node scripts/prove-check.mjs` after sourcing `apps/web/.env.local`:
+
+```
+PROOF GENERATED in 6.0s
+  entrypoint : apply_actions      calldata : 59 felts
+  proofFacts : 9                  proof    : 308720 bytes
+  NOT SUBMITTED
+```
+
+Notes that cost time to establish:
+
+- **`builder.simulate()` does not test the prover.** The SDK documents it as fee
+  estimation "without real proof generation" — it passed in 3.1s against a
+  service it never contacted. `builder.execute()` is the real test, and it still
+  submits nothing: submission is a separate `account.execute(callAndProof.call)`.
+  So proving is free to verify on any network, mainnet included.
+- **`autoRegister: true` clears the NOT_REGISTERED wall.** The account has never
+  registered a viewing key and the proof still generated, because registration is
+  bundled into the transaction. On the wallet route this is impossible — the
+  action union has no register action.
+- **The SDK is vendored from source** (`scripts/vendor-sdk.sh`), so no
+  `read:packages` token is needed and the repo stays cloneable by anyone.
+- **starknet must be a single copy.** The SDK wants 10.5.0; we pinned 10.4.0, and
+  the nested copy gave TypeScript two nominal identities for `RpcProvider` and
+  `Account` so nothing matched across the boundary. All workspaces are on 10.5.0
+  and the vendored package declares starknet as a peer.
+
 ## Next action
 
 **Deploy the escrow to Sepolia and dry-run a batch.** B1 is closed, so the route is
