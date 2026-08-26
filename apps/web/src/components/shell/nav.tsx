@@ -5,23 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-import {
-  Activity,
-  Close,
-  Inbox,
-  Layers,
-  Logo,
-  Menu,
-  Send,
-  Shield,
-  Wallet,
-} from "@/components/icons";
+import { Activity, Close, Inbox, Logo, Menu, Send, Wallet } from "@/components/icons";
 import { ConnectButton } from "@/components/shell/connect-button";
 
+// Four destinations, one of which is the job. Everything the old "Shield" and
+// "Pay a batch" pages did is now a step inside Send, because sequencing them was
+// never the payer's problem to solve.
 const ITEMS = [
-  { href: "/app", label: "Overview", icon: Layers },
-  { href: "/app/shield", label: "Shield", icon: Shield },
-  { href: "/app/pay", label: "Pay a batch", icon: Send },
+  { href: "/app", label: "Send", icon: Send },
   { href: "/app/claim", label: "Claim", icon: Inbox },
   { href: "/app/activity", label: "Activity", icon: Activity },
   { href: "/app/wallet", label: "Wallet", icon: Wallet },

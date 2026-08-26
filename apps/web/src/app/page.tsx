@@ -45,7 +45,7 @@ export default function LandingPage() {
             </RevealItem>
             <RevealItem>
               <div className="mt-10 flex flex-wrap items-center gap-3">
-                <ButtonLink href="/app/pay" size="lg">
+                <ButtonLink href="/app" size="lg">
                   Pay a batch
                   <ArrowRight className="size-[18px]" />
                 </ButtonLink>
@@ -143,12 +143,12 @@ export default function LandingPage() {
               Run payroll without publishing it.
             </h2>
             <div className="mt-9 flex flex-wrap justify-center gap-3">
-              <ButtonLink href="/app/pay" size="lg">
+              <ButtonLink href="/app" size="lg">
                 Pay a batch
                 <ArrowRight className="size-[18px]" />
               </ButtonLink>
-              <ButtonLink href="/app/wallet" size="lg" variant="secondary">
-                Check wallet support
+              <ButtonLink href="/app/claim" size="lg" variant="secondary">
+                Claim a payment
               </ButtonLink>
             </div>
           </div>
