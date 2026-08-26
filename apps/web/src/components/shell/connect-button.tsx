@@ -18,17 +18,26 @@ export function ConnectButton() {
   }
 
   if (connection.status === "connected") {
+    const usable = connection.support.supported;
     return (
       <div className="flex items-center gap-2">
-        {connection.support.supported ? null : <Pill tone="caution">No STRK20</Pill>}
+        {usable ? null : <Pill tone="caution">Cannot sign STRK20</Pill>}
         <button
           type="button"
           onClick={disconnect}
-          title={`${connection.wallet.name} — click to disconnect`}
-          className="flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm transition-colors hover:border-line-strong hover:bg-surface-hover"
+          title="Click to disconnect"
+          className="flex items-center gap-2.5 rounded-xl border border-line px-3 py-2 text-sm transition-colors hover:border-line-strong hover:bg-surface-hover"
         >
-          <span className="size-2 rounded-full bg-positive" />
-          <span className="font-mono text-xs">{shortenFelt(connection.address, 6, 4)}</span>
+          {/* Which wallet, not just which address. Two wallets can hold the same
+              account, and only some of them can execute STRK20 actions. */}
+          <span
+            className={`size-2 rounded-full ${usable ? "bg-positive" : "bg-caution"}`}
+            aria-hidden
+          />
+          <span className="hidden font-medium sm:inline">{connection.wallet.name}</span>
+          <span className="font-mono text-xs text-text-muted">
+            {shortenFelt(connection.address, 6, 4)}
+          </span>
         </button>
       </div>
     );
