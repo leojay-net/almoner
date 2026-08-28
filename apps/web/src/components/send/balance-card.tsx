@@ -6,6 +6,8 @@ import { Shield, Spark } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Working } from "@/components/ui/spinner";
 import { TextField } from "@/components/ui/field";
 import { POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { formatUnits, shortenFelt } from "@/lib/format";
@@ -97,7 +99,9 @@ export function BalanceCard({ registered }: { registered: boolean }) {
               Private balance
             </p>
             <p className="tabular mt-2 text-heading font-semibold">
-              {balance === null ? (
+              {reading && balance === null ? (
+                <Skeleton className="h-[1em] w-40" />
+              ) : balance === null ? (
                 <span className="text-text-muted">
                   {registered ? "—" : "Not set up"}
                 </span>
@@ -116,8 +120,13 @@ export function BalanceCard({ registered }: { registered: boolean }) {
           </div>
           <div className="flex gap-2">
             {registered ? (
-              <Button variant="secondary" size="sm" disabled={reading} onClick={() => void readBalance()}>
-                {reading ? "Reading…" : balance === null ? "Show" : "Refresh"}
+              <Button
+                variant="secondary"
+                size="sm"
+                loading={reading}
+                onClick={() => void readBalance()}
+              >
+                {balance === null ? "Show" : "Refresh"}
               </Button>
             ) : null}
             <Button size="sm" onClick={() => setAdding(true)}>
@@ -141,7 +150,7 @@ export function BalanceCard({ registered }: { registered: boolean }) {
             inputMode="decimal"
             hint={`A ${formatUnits(POOL_FEE_FRI)} STRK pool fee applies to this transaction.`}
           />
-          {busy ? <p className="text-sm text-text-secondary">{busy}</p> : null}
+          {busy ? <Working>{busy}</Working> : null}
           {done ? (
             <p className="rounded-card border border-positive/35 bg-positive-wash p-3 text-sm">
               Added.{" "}
@@ -161,7 +170,7 @@ export function BalanceCard({ registered }: { registered: boolean }) {
             </p>
           ) : null}
           <div className="flex gap-2">
-            <Button disabled={busy !== null} onClick={() => void addFunds()}>
+            <Button loading={busy !== null} onClick={() => void addFunds()}>
               <Spark className="size-4" />
               Add {amount || "0"} STRK
             </Button>

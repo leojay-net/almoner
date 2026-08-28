@@ -9,6 +9,7 @@ import {
 } from "@almoner/strk20-capability";
 
 import { Pill } from "@/components/ui/pill";
+import { Spinner } from "@/components/ui/spinner";
 import {
   getServerWalletsSnapshot,
   getWalletsSnapshot,
@@ -104,9 +105,11 @@ export function WalletCapabilityPanel() {
                     type="button"
                     onClick={() => void probe(wallet)}
                     disabled={probeState?.status === "checking"}
-                    className="shrink-0 rounded-md border border-line px-3 py-1.5 text-sm transition hover:bg-surface-hover disabled:opacity-50 "
+                    aria-busy={probeState?.status === "checking" || undefined}
+                    className="inline-flex shrink-0 items-center gap-2 rounded-md border border-line px-3 py-1.5 text-sm transition hover:bg-surface-hover disabled:opacity-50 aria-[busy=true]:opacity-100"
                   >
-                    {probeState?.status === "checking" ? "Checking…" : "Check"}
+                    {probeState?.status === "checking" ? <Spinner className="size-3.5" /> : null}
+                    Check
                   </button>
                 )}
               </div>

@@ -188,7 +188,8 @@
     border-radius: 4px;
   }
 
-  /* Respect the OS setting. Motion is polish; it is never load-bearing. */
+  /* Respect the OS setting. Motion is polish; it is never load-bearing —
+  with one exception, below. */
   @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
@@ -197,6 +198,16 @@
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;
       scroll-behavior: auto !important;
+    }
+
+    /* A spinner is the exception: it is the signal, not decoration. Freezing it
+    at one iteration leaves a ring stopped mid-rotation, which reads as a broken
+    image rather than as work in progress. It is kept, slowed, and it is small
+    and stationary — the rotation has no translation to trigger vestibular
+    discomfort, which is what this media query exists to prevent. */
+    [data-spinner] {
+      animation-duration: 1.4s !important;
+      animation-iteration-count: infinite !important;
     }
   }
 }

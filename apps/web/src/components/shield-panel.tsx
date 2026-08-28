@@ -98,8 +98,8 @@ export function ShieldPanel() {
       </Card>
 
       {connection.status === "connected" ? (
-        <Button size="lg" disabled={busy || !ready} onClick={() => void shield()}>
-          {busy ? "Working…" : `Shield ${amount || "0"} STRK`}
+        <Button size="lg" disabled={!ready} loading={busy} onClick={() => void shield()}>
+          {`Shield ${amount || "0"} STRK`}
         </Button>
       ) : (
         <p className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">

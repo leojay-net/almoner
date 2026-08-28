@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { TextAreaField, TextField } from "@/components/ui/field";
 import { Modal } from "@/components/ui/modal";
+import { Working } from "@/components/ui/spinner";
 import { CHAIN_ID, POOL_ADDRESS, POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
@@ -274,7 +275,8 @@ export function SendScreen() {
             </p>
             <Button
               size="lg"
-              disabled={parsed.recipients.length === 0 || busy !== null || executor === null}
+              disabled={parsed.recipients.length === 0 || executor === null}
+              loading={busy !== null && !confirming}
               onClick={() => void review()}
             >
               {busy ?? "Review payment"}
@@ -385,18 +387,19 @@ export function SendScreen() {
               </a>
             ) : null}
 
-            {busy ? <p className="text-sm text-text-secondary">{busy}</p> : null}
+            {busy ? <Working>{busy}</Working> : null}
 
             {!sent || sent === "dry-run" ? (
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
-                  disabled={busy !== null || escrowMissing}
+                  disabled={escrowMissing}
+                  loading={busy !== null}
                   onClick={() => void send(true)}
                 >
                   Dry run
                 </Button>
-                <Button disabled={busy !== null || !canSend} onClick={() => void send(false)}>
+                <Button disabled={!canSend} loading={busy !== null} onClick={() => void send(false)}>
                   Send payment
                 </Button>
               </div>

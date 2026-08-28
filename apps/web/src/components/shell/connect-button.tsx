@@ -53,10 +53,10 @@ export function ConnectButton() {
       <Button
         size="sm"
         onClick={() => setPicking(true)}
-        disabled={connection.status === "connecting"}
+        loading={connection.status === "connecting"}
       >
         <Wallet className="size-4" />
-        {connection.status === "connecting" ? "Connecting…" : "Connect wallet"}
+        Connect wallet
       </Button>
 
       <Modal

@@ -20,6 +20,7 @@ import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
 import { checkRegistration, checkRegistrations, type RegistrationStatus } from "@/lib/registration";
 import { useWallet } from "@/lib/wallet-context";
+import { Spinner } from "@/components/ui/spinner";
 
 const SAMPLE = `# address, amount
 0x02b3f4c1a9d8e7b6a5c4d3e2f1098765432109876543210987654321098765, 12.5
@@ -238,9 +239,11 @@ export function PayerPanel() {
           type="button"
           onClick={() => void prepare()}
           disabled={parsed.recipients.length === 0 || stage.kind === "checking"}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40 "
+          aria-busy={stage.kind === "checking" || undefined}
+          className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40 aria-[busy=true]:opacity-100"
         >
-          {stage.kind === "checking" ? "Checking the pool…" : "Review batch"}
+          {stage.kind === "checking" ? <Spinner className="size-4" /> : null}
+          Review batch
         </button>
       </section>
 

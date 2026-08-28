@@ -21,6 +21,7 @@ import {
   type Allocation,
 } from "@/lib/escrow";
 import { formatExpiry, formatUnits, shortenFelt } from "@/lib/format";
+import { Spinner, Working } from "@/components/ui/spinner";
 import {
   getServerWalletsSnapshot,
   getWalletsSnapshot,
@@ -273,9 +274,7 @@ function AllocationSummary({
         ) : null}
       </dl>
 
-      {lookup.kind === "loading" ? (
-        <p className="mt-3 text-sm text-text-muted">Checking the escrow…</p>
-      ) : null}
+      {lookup.kind === "loading" ? <Working className="mt-3">Checking the escrow…</Working> : null}
       {lookup.kind === "error" ? (
         <p className="mt-3 text-sm text-critical">Could not read the escrow: {lookup.message}</p>
       ) : null}
@@ -356,8 +355,10 @@ function ClaimActions({
                 type="button"
                 disabled={busy}
                 onClick={() => onClaim(wallet, false)}
-                className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40 "
+                aria-busy={busy || undefined}
+                className="inline-flex items-center gap-2 rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-accent-contrast transition hover:bg-accent-hover disabled:opacity-40 aria-[busy=true]:opacity-100"
               >
+                {busy ? <Spinner className="size-3.5" /> : null}
                 Claim
               </button>
             </span>
@@ -380,7 +381,7 @@ function SubmissionState({ submission }: { submission: Submission }) {
     case "idle":
       return null;
     case "working":
-      return <p className="text-sm text-text-secondary">{submission.label}</p>;
+      return <Working>{submission.label}</Working>;
     case "dry-run-ok":
       return (
         <Notice tone="ok" title="Dry run succeeded">
