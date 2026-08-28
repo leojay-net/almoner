@@ -25,3 +25,4 @@ target/
 
 # Vendored SDK, rebuilt by scripts/vendor-sdk.sh
 vendor/
+.vercel
