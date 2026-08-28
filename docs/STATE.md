@@ -84,12 +84,8 @@ real constraint.
 
 ## Next action
 
-**Exercise the mainnet escrow with a small claim-link batch**, which also produces
-mainnet transactions 2 and 3. Fund → export links → claim from the link. Then record
-the demo video.
-
-Still unconfirmed: whether the earlier note-to-note attempt settled. Only the shielded
-balance can answer it (was 24 STRK after the shield).
+**Record the 3-minute demo video** and put its URL in `strk20.json` (`demo_video` is
+the last empty field). Everything else the sprint asks for is in place.
 
 ## Why a sent payment can be unfindable, 28 Aug
 
@@ -256,6 +252,39 @@ get done first, not last.
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
 | B6 | Escrow contract has had **no human security review**. It holds real funds | **Accepted, not resolved, 28 Aug.** Deployed to mainnet at `0x0742e87165702505a514e20167c6b613023d96689b10b87fc197626b7fe08689` on the user's explicit instruction after the risk was stated twice. Still no independent review. Mitigations: small amounts only, and the send screen now states in-product that the contract is unaudited with no pause and no upgrade path, linking to `contracts/SECURITY.md` |
 | B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | **Narrowed.** The encoder's output now provably deserializes into the contract signature (both suites pin the vectors), so field order, span lengths and enum indices are settled. What remains unproven is whether the *pool* accepts the surrounding action list — phase order, withdrawal leg, open-note indexing. The Dry run button settles that; needs B1 |
+
+## Three mainnet transactions, all through Almoner, 28 Aug
+
+Every one succeeded. The full ledger reconciles against the chain to the last decimal.
+
+| # | Action | Tx | Block | Pool delta |
+| --- | --- | --- | --- | --- |
+| 1 | Shield 30 STRK | `0x160e255a…480ca` | 14003084 | **+24** (6 taken as fee on the way in) |
+| 2 | Fund a batch | `0x503e834e…19a0` | 14017248 | **−9** (3 to escrow, 6 fee) |
+| 3 | Claim | `0x5576f133…5e54` | 14017562 | **−5** (1 in from escrow, 6 fee) |
+
+```
+ 30 deposited − 18 fees (3 × 6) = 12 remaining
+    10 shielded + 2 unclaimed in escrow
+```
+The escrow's on-chain STRK balance is exactly 2, confirming it independently.
+
+Measured by reading the pool's own STRK balance either side of each block, which is
+the only reliable method: the transactions are submitted by single-use privacy
+accounts, so nothing links them to the payer's address.
+
+Public gas from the payer's address totalled 12.282139 STRK, effectively all of it the
+escrow declare. Transactions 2 and 3 cost the public address nothing.
+
+## Fee floor on claim links — protocol constraint, 28 Aug
+
+The pool fee is charged against funds **inside** the pool and can never be paid from a
+public balance. A first-time claimer therefore has to shield the fee amount (6 STRK on
+mainnet) in the same transaction as the claim, which also registers them.
+
+Consequence: **a claim link worth less than 6 STRK costs a new recipient more than it
+pays.** Not something Almoner can engineer around. The send screen warns on it, and it
+is the strongest argument for batching — 50 recipients still pay one fee.
 
 ## Mainnet escrow deployed, 28 Aug
 
