@@ -60,6 +60,28 @@ Notes that cost time to establish:
   `Account` so nothing matched across the boundary. All workspaces are on 10.5.0
   and the vendored package declares starknet as a peer.
 
+## What has and has not been tested on Sepolia, 26 Aug
+
+| | |
+| --- | --- |
+| `scripts/prove-check.mjs` | proves against the live pool, ~6s |
+| `/api/strk20` (`op: prepare`) | **proves through the app** — 9 proof facts, ~310KB |
+| `/api/strk20` (`op: invoke`) | never succeeded — submission blocked |
+| escrow `privacy_invoke` path | correctly rejected: no shielded balance to withdraw from |
+| the app UI end to end | **not tested** |
+
+A bug this surfaced: the SDK route's `prepare` originally called `simulate()`,
+which the SDK documents as fee estimation "without real proof generation". It
+returned success against a prover it never contacted — the opposite of what a
+"test first" button is for, and inconsistent with the wallet route, whose
+prepare genuinely proves. Both branches now call `execute()`, which proves
+without submitting.
+
+Everything past a deposit is gated on submission, which is blocked by Braavos v3
+fee validation: "exceed balance" is returned identically for a 0.11 STRK cap and
+a 4700 STRK cap against a 136 STRK balance, so the message is not describing the
+real constraint.
+
 ## Next action
 
 **Deploy the escrow to Sepolia and dry-run a batch.** B1 is closed, so the route is
