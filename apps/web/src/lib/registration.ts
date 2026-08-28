@@ -1,26 +1,29 @@
 "use client";
 
-import { hash } from "starknet";
+import { hash, num } from "starknet";
 
-import { POOL_ADDRESS, POOL_DEPLOY_BLOCK } from "./chain";
-import { normalizeAddress } from "./address";
+import { POOL_ADDRESS } from "./chain";
 
 /**
- * `ViewingKeySet` is emitted once when an account registers with the pool, with
- * the account address as the first data key. That event is the proof of
- * enrolment, and the only way to tell from outside whether an address can
- * receive a private transfer.
+ * Whether an account has registered a viewing key with the pool.
+ *
+ * Read from the pool's `get_public_key` view, not by scanning `ViewingKeySet`
+ * events. The event scan was the original approach and it does not work on
+ * mainnet: the pool was deployed at block 8,978,970 and the tip is past 14M, so
+ * finding a single event means paging through five million blocks — measured at
+ * 40 pages and 32 seconds without reaching it. A registered account was
+ * therefore reported "unknown", the UI read that as "no pool position", and it
+ * asked people to shield again when they already had a balance.
+ *
+ * The view answers in about half a second and cannot be wrong: a zero public key
+ * means no registration, anything else means registered.
  */
-const VIEWING_KEY_SET = hash.getSelectorFromName("ViewingKeySet");
-
-/** Pages to follow before giving up on a negative answer. */
-const MAX_PAGES = 6;
-const CHUNK_SIZE = 1000;
+const GET_PUBLIC_KEY = hash.getSelectorFromName("get_public_key");
 
 export type RegistrationStatus = "registered" | "unregistered" | "unknown";
 
 interface RpcResponse {
-  result?: { events?: unknown[]; continuation_token?: string };
+  result?: string[];
   error?: { message?: string };
 }
 
@@ -34,60 +37,43 @@ async function rpc(method: string, params: unknown): Promise<RpcResponse> {
 }
 
 /**
- * Asks whether an address has registered a viewing key with the pool.
+ * One RPC call, no paging.
  *
- * A positive answer is cheap — stop at the first event. A negative one is not:
- * proving absence means scanning to the chain tip, so paging is capped and an
- * exhausted budget returns `"unknown"` rather than a confident `"unregistered"`.
- *
- * Callers should treat `"unknown"` as unregistered, because that routes the
- * payout through escrow, which works for everyone. The opposite mistake is the
- * costly one: a direct transfer to an unregistered recipient reverts, and a
- * batch is atomic, so it would take the whole run down with it.
+ * Returns `"unknown"` only when the call itself failed. Callers should treat
+ * that as unregistered, because escrow works for everyone whereas a direct
+ * transfer to an unregistered recipient reverts and takes the whole atomic
+ * batch with it.
  */
 export async function checkRegistration(address: string): Promise<RegistrationStatus> {
-  const target = normalizeAddress(address);
-  let continuationToken: string | undefined;
-
-  for (let page = 0; page < MAX_PAGES; page += 1) {
-    const filter: Record<string, unknown> = {
-      from_block: { block_number: POOL_DEPLOY_BLOCK },
-      to_block: "latest",
-      address: POOL_ADDRESS,
-      keys: [[VIEWING_KEY_SET], [target]],
-      chunk_size: CHUNK_SIZE,
-    };
-    if (continuationToken !== undefined) filter.continuation_token = continuationToken;
-
-    const response = await rpc("starknet_getEvents", { filter });
-    if (response.error || !response.result) return "unknown";
-
-    if ((response.result.events?.length ?? 0) > 0) return "registered";
-
-    continuationToken = response.result.continuation_token;
-    if (continuationToken === undefined) return "unregistered";
+  try {
+    const response = await rpc("starknet_call", {
+      request: {
+        contract_address: POOL_ADDRESS,
+        entry_point_selector: GET_PUBLIC_KEY,
+        calldata: [num.toHex(BigInt(address))],
+      },
+      block_id: "latest",
+    });
+    if (response.error || !response.result || response.result.length === 0) return "unknown";
+    return BigInt(response.result[0]!) === 0n ? "unregistered" : "registered";
+  } catch {
+    return "unknown";
   }
-
-  return "unknown";
 }
 
 /** Resolves registration for many addresses, with a small concurrency limit. */
 export async function checkRegistrations(
   addresses: readonly string[],
-  concurrency = 4,
+  concurrency = 6,
 ): Promise<Map<string, RegistrationStatus>> {
   const results = new Map<string, RegistrationStatus>();
-  const queue = [...new Set(addresses.map(normalizeAddress))];
+  const queue = [...new Set(addresses.map((a) => num.toHex(BigInt(a))))];
 
   async function worker() {
     for (;;) {
       const address = queue.shift();
       if (address === undefined) return;
-      try {
-        results.set(address, await checkRegistration(address));
-      } catch {
-        results.set(address, "unknown");
-      }
+      results.set(address, await checkRegistration(address));
     }
   }
 
