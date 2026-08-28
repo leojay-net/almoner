@@ -18,5 +18,6 @@
 [sncast.sepolia]
 url = "https://api.cartridge.gg/x/starknet/sepolia"
 
+# lava serves RPC 0.8.1, which sncast 0.63 rejects. cartridge serves 0.10.2.
 [sncast.mainnet]
-url = "https://rpc.starknet.lava.build"
+url = "https://api.cartridge.gg/x/starknet/mainnet"
