@@ -84,11 +84,29 @@ real constraint.
 
 ## Next action
 
-**Deploy the escrow to Sepolia and dry-run a batch.** B1 is closed, so the route is
-confirmed and the remaining sequence is short: Sepolia deploy → `strk20PrepareInvoke`
-dry run (settles B7) → mainnet deploy → three mainnet transactions → fill `strk20.json`.
+**Confirm whether mainnet transaction 2 landed, then decide on the mainnet escrow.**
 
-Blocked on a human review of the contract (B6) and a funded account.
+To confirm: open the app and reveal the shielded balance. It was 24 STRK after the
+shield. If it dropped, the note-to-note payment settled and we are at two of three.
+The chain cannot answer this — see "Why a sent payment can be unfindable" below.
+
+Then the escrow decision (B6). It is only needed for claim links; direct note-to-note
+payments to registered recipients already work on mainnet without it.
+
+## Why a sent payment can be unfindable, 28 Aug
+
+Scanned every pool transaction in blocks 14002964–14004464 (16:23–17:05 UTC, 28 Aug):
+**eleven transactions, all from different senders, only one linkable to us** — the
+shield `0x160e255a…480ca` at block 14003084.
+
+The shield is findable only because a deposit has a **public ERC-20 leg**: real STRK
+moves from a visible address. A note-to-note transfer has no public leg, and pool
+transactions are not submitted by the user's own account (even the shield was sent by
+`0x6f6ad427…`). So *absence of evidence is not evidence of absence* — a successful
+private transfer is indistinguishable from never having sent one, from the outside.
+
+This is the privacy guarantee working, not a bug, and it is why the sending browser now
+keeps its own receipts.
 
 **Correction from the original plan:** do *not* feature-detect by calling
 `wallet_strk20Balances`, which the Day-0 doc suggests. It reads shielded balances, so
@@ -225,6 +243,8 @@ get done first, not last.
 | 21 Aug | Automation split at the **proof boundary** | Every pool write needs a proof, so the server automates everything except value entering the pool. One signature per funding, not per payment |
 | 21 Aug | Category **Infra** | Payments has 23 entries and DeFi 18. Infra is less crowded and the honest description of a rail others build on |
 | 21 Aug | Name **Almoner** | "Sluice" collides with an existing crypto batched-payments project. Almoner = the officer who distributes funds on another's behalf; npm and GitHub clear |
+| 28 Aug | Payment history is **local to the sending browser**, never a server | The pool cannot list private transfers and never will — they are encrypted to keys the chain does not hold. The split that respects that: the chain keeps the proof (hash, block, settled/reverted), the sender's device keeps the meaning (recipients, amounts, links). A server-side history would leak exactly what the pool exists to hide |
+| 28 Aug | Escrow address is required **only when a batch uses it** | `buildFundActions` demanded one unconditionally, so every mainnet dry run failed with "escrowAddress must not be zero" even for pure note-to-note batches that never touch the contract. A payment was blocked on a contract it does not call |
 | 21 Aug | Own Cairo escrow contract rather than reusing a helper | Integration depth is 30% of scoring and explicitly names anonymizer contracts; also required so demo transactions carry our own event |
 
 ## Blockers and open questions
@@ -236,7 +256,7 @@ get done first, not last.
 | B3 | Max recipients per batch before proof-size limits | Unknown. Docs give no number. Measure in P3 and publish it |
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
-| B6 | Escrow contract has had **no human security review**. It holds real funds | Open — a structured self-review is written up in `contracts/SECURITY.md` with eight findings, but a self-review is not an audit. Gate before any deploy |
+| B6 | Escrow contract has had **no human security review**. It holds real funds | Open — a structured self-review is written up in `contracts/SECURITY.md` with eight findings, but a self-review is not an audit. Gate before any deploy. **Scope note, 28 Aug:** this blocks the *claim-link* path only. Direct note-to-note payments to registered recipients need no escrow and work on mainnet today |
 | B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | **Narrowed.** The encoder's output now provably deserializes into the contract signature (both suites pin the vectors), so field order, span lengths and enum indices are settled. What remains unproven is whether the *pool* accepts the surrounding action list — phase order, withdrawal leg, open-note indexing. The Dry run button settles that; needs B1 |
 
 ## Key identifiers
