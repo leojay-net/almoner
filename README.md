@@ -42,6 +42,12 @@ unreachable — a cold-start problem every payments product on STRK20 runs into.
 Almoner closes both: batch the payment so the fee amortizes, and escrow for anyone not
 yet registered so they can be paid before they arrive.
 
+To be exact about what that removes. The **payer** must hold a pool position — a
+shielded balance *is* one, so that cannot be avoided by any design. The
+**recipient** does not need one *when you pay them*, which is the blocking
+constraint in practice; they register when they claim, on their own schedule.
+What Almoner removes is the coupling between the two, not registration itself.
+
 ## How it works
 
 Payments are split at the proof boundary, because every pool write requires a ZK proof

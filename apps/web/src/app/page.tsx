@@ -39,7 +39,7 @@ export default function LandingPage() {
             <RevealItem>
               <p className="mt-7 max-w-2xl text-lead text-text-secondary">
                 Almoner pays hundreds of people from one shielded balance for a single flat fee —
-                including people who have never held a wallet. Salaries stay unlinked. Payroll stops
+                including people who have never used the pool. Salaries stay unlinked. Payroll stops
                 being a public document.
               </p>
             </RevealItem>

@@ -463,7 +463,7 @@ export function SendFlow() {
           <StepPanel
             key="review"
             title="Save the claim links"
-            description="Recipients who have never used the pool are paid through an escrow they unlock with a link. Those links exist only in this browser — download them before sending, or nobody can claim."
+            description="Recipients who have never used the pool are paid through an escrow they unlock with a link, so your payment does not wait on them onboarding — they register when they claim, on their own schedule. Those links exist only in this browser: download them before sending, or nobody can claim."
             footer={
               <>
                 <Button size="lg" onClick={exportLinks}>
