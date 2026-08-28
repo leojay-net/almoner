@@ -10,7 +10,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { detectStrk20Support, describeStrk20Support } from "@almoner/strk20-capability";
 
-import { VOYAGER_TX_URL, tokenSymbol } from "@/lib/chain";
+import { POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL, tokenSymbol } from "@/lib/chain";
+import { checkRegistration } from "@/lib/registration";
 import { getNowSeconds, getServerNowSeconds, subscribeToClock } from "@/lib/clock";
 import { connectWalletAccount } from "@/lib/wallet-account";
 import {
@@ -114,9 +115,30 @@ export function ClaimPanel() {
         }
 
         const account = await connectWalletAccount(wallet);
+
+        // A first-time claimer fails twice over without this: the pool rejects
+        // the transfer with NOT_REGISTERED because they have no viewing key,
+        // and even registered they would have nothing inside the pool to pay
+        // the flat fee from. One deposit in the same transaction fixes both,
+        // and keeps it to a single fee rather than two.
+        setSubmission({ kind: "working", label: "Checking your pool account…" });
+        const registration = await checkRegistration(account.address);
+        const needsSetup = registration !== "registered";
+        setSubmission({
+          kind: "working",
+          label: dryRun
+            ? "Proving…"
+            : needsSetup
+              ? "Waiting for your wallet — this also sets up your pool account"
+              : "Waiting for your wallet…",
+        });
+
         const actions = buildClaimActions([{ secret: payload.secret, token: payload.token }], {
           escrowAddress: ESCROW_ADDRESS,
           recipient: account.address,
+          ...(needsSetup
+            ? { setupDeposit: { token: STRK_TOKEN, amount: POOL_FEE_FRI.toString() } }
+            : {}),
         });
 
         if (dryRun) {
@@ -368,9 +390,12 @@ function ClaimActions({
 
       <SubmissionState submission={submission} />
 
-      <p className="text-xs text-text-muted">
-        Claiming registers you with the pool if you are not registered yet, then credits a private
-        note you own. A dry run proves the transaction without submitting it.
+      <p className="text-xs leading-relaxed text-text-muted">
+        Claiming credits a private note only you can spend. If you have never used the pool,
+        the same transaction also shields {formatUnits(POOL_FEE_FRI)} STRK from your wallet — that
+        registers you and covers the pool&rsquo;s flat fee, which is charged against funds inside
+        the pool and cannot be paid from a public balance. You need that much STRK in your wallet.
+        A dry run proves the transaction without submitting it.
       </p>
     </div>
   );

@@ -332,6 +332,19 @@ export function SendScreen() {
               </div>
             ) : null}
 
+            {plan.escrowed.some((a) => BigInt(a.amount) < POOL_FEE_FRI) && !sent ? (
+              <div className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">
+                <p className="font-medium">Some claim links are worth less than the pool fee</p>
+                <p className="mt-1 leading-relaxed text-text-secondary">
+                  A recipient who has never used the pool must shield{" "}
+                  {formatUnits(POOL_FEE_FRI)} STRK of their own to register and cover the fee when
+                  they claim. Below that, claiming costs them more than it pays. Amounts above{" "}
+                  {formatUnits(POOL_FEE_FRI)} STRK are worth claiming; smaller ones only make sense
+                  for someone already in the pool.
+                </p>
+              </div>
+            ) : null}
+
             {plan.escrowed.length > 0 && ESCROW_ADDRESS !== "" && !sent ? (
               <div
                 className={`rounded-card border p-4 text-sm ${

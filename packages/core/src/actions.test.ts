@@ -260,3 +260,39 @@ describe("escrow address requirement", () => {
     expect(() => buildFundActions(withEscrow, {})).toThrow(/not registered with the pool/);
   });
 });
+
+describe("buildClaimActions setup deposit", () => {
+  const opts = {
+    escrowAddress: "0x9",
+    recipient: "0x1",
+    setupDeposit: { token: "0x4718f5a", amount: "6000000000000000000" },
+  };
+  const one = [{ secret: "0x7", token: "0x4718f5a" }];
+
+  it("shields first so an unregistered claimer is registered and can pay the fee", () => {
+    const actions = buildClaimActions(one, opts);
+    expect(actions[0]).toEqual({
+      type: "deposit",
+      token: "0x4718f5a",
+      amount: "0x53444835ec580000",
+    });
+    expect(actions[1]?.type).toBe("transfer");
+    expect(actions.at(-1)?.type).toBe("invoke");
+  });
+
+  it("emits no deposit when the claimer already uses the pool", () => {
+    const actions = buildClaimActions(one, { escrowAddress: "0x9", recipient: "0x1" });
+    expect(actions.some((a) => a.type === "deposit")).toBe(false);
+  });
+
+  it("still satisfies phase order with a deposit in front", () => {
+    expect(() => assertPhaseOrder(buildClaimActions(one, opts))).not.toThrow();
+  });
+
+  it("rejects a zero setup deposit", () => {
+    expect(() =>
+      buildClaimActions(one, { ...opts, setupDeposit: { token: "0x4718f5a", amount: "0" } }),
+    ).toThrow(/positive/);
+  });
+});
+

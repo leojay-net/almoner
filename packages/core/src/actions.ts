@@ -103,6 +103,23 @@ export interface ClaimOptions {
   readonly escrowAddress: string;
   /** Account the redeemed notes are credited to — the claimer's own address. */
   readonly recipient: string;
+  /**
+   * Shields public funds from the claimer's own wallet in the same transaction.
+   *
+   * Needed when the claimer has never used the pool. Two things are true of a
+   * first-time claimer and both are solved by one deposit:
+   *
+   *   1. They have no viewing key on-chain, so the pool rejects the transfer
+   *      with NOT_REGISTERED. Depositing registers them — it is exactly what
+   *      "shield" does in a wallet.
+   *   2. The pool charges its flat fee against funds *inside* the pool, and a
+   *      new account has none. The claim credits a note, but the fee is
+   *      collected regardless of what the note is worth.
+   *
+   * Doing it in the same transaction rather than as a separate setup step
+   * matters: the fee is per transaction, so splitting them doubles it.
+   */
+  readonly setupDeposit?: { readonly token: string; readonly amount: string };
 }
 
 /**
@@ -126,12 +143,28 @@ export function buildClaimActions(
   if (BigInt(escrowAddress) === 0n) throw new Error("escrowAddress must not be zero");
   if (BigInt(recipient) === 0n) throw new Error("recipient must not be zero");
 
-  const actions: STRK20_ACTION[] = claims.map((claim) => ({
-    type: "transfer",
-    token: normalizeFelt(claim.token),
-    amount: "OPEN",
-    recipient,
-  }));
+  const actions: STRK20_ACTION[] = [];
+
+  // Deposits are exempt from phase ordering, but emitting one first keeps the
+  // list readable and matches the order the pool applies them in.
+  if (options.setupDeposit !== undefined) {
+    const amount = BigInt(options.setupDeposit.amount);
+    if (amount <= 0n) throw new Error("setupDeposit amount must be positive");
+    actions.push({
+      type: "deposit",
+      token: normalizeFelt(options.setupDeposit.token),
+      amount: normalizeFelt(options.setupDeposit.amount),
+    });
+  }
+
+  actions.push(
+    ...claims.map<STRK20_ACTION>((claim) => ({
+      type: "transfer",
+      token: normalizeFelt(claim.token),
+      amount: "OPEN",
+      recipient,
+    })),
+  );
 
   const claimItems: CalldataItem[][] = claims.map((claim, index) => [
     felt(claim.secret),
