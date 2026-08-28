@@ -21,6 +21,7 @@ import { Modal } from "@/components/ui/modal";
 import { CHAIN_ID, POOL_ADDRESS, POOL_FEE_FRI, STRK_TOKEN, VOYAGER_TX_URL } from "@/lib/chain";
 import { ESCROW_ADDRESS } from "@/lib/escrow";
 import { formatUnits, shortenFelt } from "@/lib/format";
+import { recordReceipt } from "@/lib/receipts";
 import { checkRegistrations, type RegistrationStatus } from "@/lib/registration";
 import { useAccountStatus } from "@/lib/account-status";
 import { useWallet } from "@/lib/wallet-context";
@@ -156,6 +157,23 @@ export function SendScreen() {
         const { transaction_hash } = await executor.invoke(actions);
         t.ok("submitted", { transaction_hash });
         t.end();
+        // Written before the modal even closes. A payment you cannot find
+        // again is a payment you cannot trust, and the pool will never be able
+        // to list it for you — see lib/receipts.ts.
+        recordReceipt({
+          hash: transaction_hash,
+          chainId: CHAIN_ID,
+          account: connectedAddress,
+          at: Date.now(),
+          directCount: plan.direct.length,
+          escrowedCount: plan.escrowed.length,
+          totalFri: [...plan.direct, ...plan.escrowed]
+            .reduce((sum, p) => sum + BigInt(p.amount), 0n)
+            .toString(),
+          token: STRK_TOKEN,
+          feeFri: POOL_FEE_FRI.toString(),
+          status: "pending",
+        });
         setSent(transaction_hash);
       } catch (e) {
         t.fail("failed", e);
@@ -164,7 +182,7 @@ export function SendScreen() {
         setBusy(null);
       }
     },
-    [plan, executor, fail],
+    [plan, executor, fail, connectedAddress],
   );
 
   const escrowMissing = plan !== null && plan.escrowed.length > 0 && ESCROW_ADDRESS === "";
