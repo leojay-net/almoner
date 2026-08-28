@@ -15,8 +15,8 @@ import type { BatchPlan } from "./plan.js";
 const PHASE = { transfer: 5, withdraw: 6, invoke: 7 } as const;
 
 export interface FundOptions {
-  /** Deployed Almoner escrow. */
-  readonly escrowAddress: string;
+  /** Deployed Almoner escrow. Only required when the plan has escrowed payouts. */
+  readonly escrowAddress?: string;
 }
 
 /**
@@ -30,10 +30,20 @@ export interface FundOptions {
  * allocation travels in a single `privacy_invoke` call.
  */
 export function buildFundActions(plan: BatchPlan, options: FundOptions): STRK20_ACTION[] {
-  const escrowAddress = normalizeFelt(options.escrowAddress);
-  if (BigInt(escrowAddress) === 0n) throw new Error("escrowAddress must not be zero");
   if (plan.direct.length === 0 && plan.escrowed.length === 0) {
     throw new Error("plan contains no payouts");
+  }
+
+  // The escrow is only involved when someone is being paid by claim link. A
+  // batch where every recipient already uses the pool is pure note-to-note
+  // transfers, and demanding an escrow address for it blocks a perfectly valid
+  // payment on a contract it never touches.
+  const escrowAddress = plan.escrowed.length > 0 ? normalizeFelt(options.escrowAddress ?? "0x0") : "0x0";
+  if (plan.escrowed.length > 0 && BigInt(escrowAddress) === 0n) {
+    throw new Error(
+      `${plan.escrowed.length} recipient(s) are not registered with the pool and must be paid ` +
+        "through the escrow contract, but no escrow address is configured for this network.",
+    );
   }
 
   const actions: STRK20_ACTION[] = [];

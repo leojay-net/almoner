@@ -102,8 +102,12 @@ describe("buildFundActions", () => {
     expect(actions.map((a) => a.type)).toEqual(["transfer"]);
   });
 
-  it("rejects a zero escrow address", () => {
-    expect(() => buildFundActions(plan([payout()]), { escrowAddress: "0x0" })).toThrow(/zero/);
+  it("rejects a zero escrow address when the batch actually needs one", () => {
+    // Only escrowed payouts require it; see the "escrow address requirement"
+    // block below for the case where none is needed.
+    expect(() => buildFundActions(plan([payout()]), { escrowAddress: "0x0" })).toThrow(
+      /not registered with the pool/,
+    );
   });
 });
 
@@ -231,5 +235,28 @@ describe("calldata vectors pinned against the Cairo contract", () => {
       "0x2",
       "${openNoteIds[1]}",
     ]);
+  });
+});
+
+describe("escrow address requirement", () => {
+  const registeredOnly = () =>
+    planBatch([{ recipient: "0x1", token: TOKEN, amount: 10n, registered: true }], {
+      refundRecipient: REFUND,
+    });
+
+  it("does not require an escrow when every recipient is registered", () => {
+    // A batch of pure note-to-note transfers never touches the escrow, so
+    // demanding its address would block a valid payment on an unused contract.
+    const actions = buildFundActions(registeredOnly(), {});
+    expect(actions.map((a) => a.type)).toEqual(["transfer"]);
+  });
+
+  it("explains which recipients forced the escrow when it is missing", () => {
+    counter = 0;
+    const withEscrow = planBatch(
+      [{ recipient: "0x2", token: TOKEN, amount: 10n, registered: false }],
+      { refundRecipient: REFUND, makeSecret: deterministicSecret },
+    );
+    expect(() => buildFundActions(withEscrow, {})).toThrow(/not registered with the pool/);
   });
 });

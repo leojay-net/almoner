@@ -167,7 +167,9 @@ export function SendScreen() {
     [plan, executor, fail],
   );
 
-  const canSend = plan !== null && (plan.escrowed.length === 0 || exported);
+  const escrowMissing = plan !== null && plan.escrowed.length > 0 && ESCROW_ADDRESS === "";
+  const canSend =
+    plan !== null && !escrowMissing && (plan.escrowed.length === 0 || exported);
 
   return (
     <div className="space-y-6">
@@ -296,7 +298,21 @@ export function SendScreen() {
               </p>
             ) : null}
 
-            {plan.escrowed.length > 0 && !sent ? (
+            {plan.escrowed.length > 0 && ESCROW_ADDRESS === "" ? (
+              <div className="rounded-card border border-caution/35 bg-caution-wash p-4 text-sm">
+                <p className="font-medium">
+                  {plan.escrowed.length} recipient{plan.escrowed.length === 1 ? " is" : "s are"} not
+                  in the pool yet
+                </p>
+                <p className="mt-1 text-text-secondary">
+                  They would be paid by claim link, which needs the escrow contract — and it is not
+                  deployed on {CHAIN_ID}. Pay someone who already uses the pool, or remove them
+                  from the list.
+                </p>
+              </div>
+            ) : null}
+
+            {plan.escrowed.length > 0 && ESCROW_ADDRESS !== "" && !sent ? (
               <div
                 className={`rounded-card border p-4 text-sm ${
                   exported
@@ -342,7 +358,11 @@ export function SendScreen() {
 
             {!sent || sent === "dry-run" ? (
               <div className="flex flex-wrap gap-2">
-                <Button variant="secondary" disabled={busy !== null} onClick={() => void send(true)}>
+                <Button
+                  variant="secondary"
+                  disabled={busy !== null || escrowMissing}
+                  onClick={() => void send(true)}
+                >
                   Dry run
                 </Button>
                 <Button disabled={busy !== null || !canSend} onClick={() => void send(false)}>
