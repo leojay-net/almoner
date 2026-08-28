@@ -18,7 +18,8 @@
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "vercel-build": "npm run build --workspace packages/strk20-capability --workspace packages/core && npm run build --workspace apps/web"
   },
   "devDependencies": {
     "@starkware-libs/starknet-privacy-sdk": "file:vendor/starknet-privacy-sdk",

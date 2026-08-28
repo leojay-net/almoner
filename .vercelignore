@@ -1,0 +1,16 @@
+# Vercel falls back to .gitignore when this file is absent, which would drop
+# vendor/ — and apps/web depends on it via a file: reference, so the build would
+# fail on a missing module. List exclusions explicitly instead.
+node_modules
+.next
+out
+dist
+target
+.keeper
+.agents
+.claude
+vendor/.src
+contracts/target
+contracts/.snfoundry_cache
+*.log
+.DS_Store
