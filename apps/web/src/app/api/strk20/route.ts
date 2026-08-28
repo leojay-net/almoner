@@ -107,13 +107,28 @@ export async function POST(request: Request) {
     applyActions(builder as unknown as Builder, actions, Open);
     (builder as unknown as Builder).surplusTo(account.address);
 
+    // Both branches call execute(), which proves but does not submit — the
+    // chain is only touched by account.execute() below.
+    //
+    // Deliberately NOT simulate(): the SDK documents that as fee estimation
+    // "without real proof generation", so it succeeds even when the proving
+    // service is unreachable. A "test first" that passes against a dead prover
+    // is worse than no test at all, and it would not match the wallet route,
+    // whose prepare really does prove.
+    const { callAndProof } = await builder.execute();
+
     if (op === "prepare") {
-      // Simulation needs a node of its own for the pool's view call.
-      const simulated = await builder.simulate({ node: provider });
-      return Response.json({ ok: true, op, simulated: summarise(simulated) });
+      return Response.json({
+        ok: true,
+        op,
+        proved: true,
+        entrypoint: callAndProof.call.entrypoint,
+        calldataLength: callAndProof.call.calldata?.length ?? 0,
+        proofFacts: callAndProof.proof?.proofFacts?.length ?? 0,
+        proofBytes: String(callAndProof.proof?.data ?? "").length,
+      });
     }
 
-    const { callAndProof } = await builder.execute();
     const proofDetails = callAndProof.proof.proofFacts?.length
       ? { proofFacts: callAndProof.proof.proofFacts, proof: callAndProof.proof.data }
       : {};
@@ -126,18 +141,5 @@ export async function POST(request: Request) {
     // Surface the reason; the server log keeps the stack.
     console.error("[strk20 sdk route]", error);
     return Response.json({ error: message }, { status: 500 });
-  }
-}
-
-/** Trim the simulate result to something safe and useful to return. */
-function summarise(result: unknown): unknown {
-  try {
-    return JSON.parse(
-      JSON.stringify(result, (_key, value) =>
-        typeof value === "bigint" ? `0x${value.toString(16)}` : value,
-      ),
-    );
-  } catch {
-    return { note: "simulation succeeded but the result was not serialisable" };
   }
 }
