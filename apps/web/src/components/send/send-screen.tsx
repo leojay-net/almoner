@@ -346,6 +346,19 @@ export function SendScreen() {
                     ? "Downloading them moved no money. Nothing is paid until you send below."
                     : "These secrets exist only in this browser. Without them nobody can claim."}
                 </p>
+                <p className="mt-3 border-t border-line pt-3 text-xs leading-relaxed text-text-secondary">
+                  Claim links hold funds in the Almoner escrow contract until they are claimed. That
+                  contract has been tested but never audited, and it has no pause and no upgrade
+                  path. Keep these amounts small.{" "}
+                  <a
+                    href="https://github.com/leojay-net/strk_privacy/blob/main/contracts/SECURITY.md"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="font-medium text-accent underline underline-offset-2"
+                  >
+                    Read the self-review
+                  </a>
+                </p>
                 <Button variant="secondary" size="sm" className="mt-3" onClick={exportLinks}>
                   <Download className="size-4" />
                   {exported ? "Download again" : "Download claim links"}

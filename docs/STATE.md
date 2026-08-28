@@ -84,14 +84,12 @@ real constraint.
 
 ## Next action
 
-**Confirm whether mainnet transaction 2 landed, then decide on the mainnet escrow.**
+**Exercise the mainnet escrow with a small claim-link batch**, which also produces
+mainnet transactions 2 and 3. Fund → export links → claim from the link. Then record
+the demo video.
 
-To confirm: open the app and reveal the shielded balance. It was 24 STRK after the
-shield. If it dropped, the note-to-note payment settled and we are at two of three.
-The chain cannot answer this — see "Why a sent payment can be unfindable" below.
-
-Then the escrow decision (B6). It is only needed for claim links; direct note-to-note
-payments to registered recipients already work on mainnet without it.
+Still unconfirmed: whether the earlier note-to-note attempt settled. Only the shielded
+balance can answer it (was 24 STRK after the shield).
 
 ## Why a sent payment can be unfindable, 28 Aug
 
@@ -256,8 +254,22 @@ get done first, not last.
 | B3 | Max recipients per batch before proof-size limits | Unknown. Docs give no number. Measure in P3 and publish it |
 | B4 | Does deposit screening reject ordinary addresses? | Unknown. Test with a small amount in P1 |
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
-| B6 | Escrow contract has had **no human security review**. It holds real funds | Open — a structured self-review is written up in `contracts/SECURITY.md` with eight findings, but a self-review is not an audit. Gate before any deploy. **Scope note, 28 Aug:** this blocks the *claim-link* path only. Direct note-to-note payments to registered recipients need no escrow and work on mainnet today |
+| B6 | Escrow contract has had **no human security review**. It holds real funds | **Accepted, not resolved, 28 Aug.** Deployed to mainnet at `0x0742e87165702505a514e20167c6b613023d96689b10b87fc197626b7fe08689` on the user's explicit instruction after the risk was stated twice. Still no independent review. Mitigations: small amounts only, and the send screen now states in-product that the contract is unaudited with no pause and no upgrade path, linking to `contracts/SECURITY.md` |
 | B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | **Narrowed.** The encoder's output now provably deserializes into the contract signature (both suites pin the vectors), so field order, span lengths and enum indices are settled. What remains unproven is whether the *pool* accepts the surrounding action list — phase order, withdrawal leg, open-note indexing. The Dry run button settles that; needs B1 |
+
+## Mainnet escrow deployed, 28 Aug
+
+| | |
+| --- | --- |
+| Escrow | `0x0742e87165702505a514e20167c6b613023d96689b10b87fc197626b7fe08689` |
+| Class hash | `0x04a9fed884375c6b5475f1606e86466038b3ad44642a5a33eabf69ca8a9a4869` |
+| Declare tx | `0x014368b307eed40d9b0c33edd2cd1fa632d43a721f14b8d9d8ccec987b8552c2` |
+| Pinned pool | `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a` (verified by reading `privacy_pool` back) |
+| Deployer | `privacy_mixer_deployer` = `0x0173…9634`, OpenZeppelin |
+| From block | ~14013518 |
+
+Deployed **without** clearing B6. 30 tests pass and the self-review stands, but no
+independent human has read the source. No pause, no upgrade, no admin — see S5.
 
 ## Key identifiers
 
