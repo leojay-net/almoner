@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
-  "installCommand": "./scripts/vendor-sdk.sh && npm install --no-audit --no-fund",
+  "installCommand": "./scripts/vendor-sdk.sh && npm install --no-audit --no-fund && npm install --no-save --no-audit --no-fund --workspace apps/web lightningcss-linux-x64-gnu@1.32.0 @tailwindcss/oxide-linux-x64-gnu@4.3.3 @next/swc-linux-x64-gnu@16.3.2",
   "buildCommand": "npm run vercel-build",
   "outputDirectory": "apps/web/.next"
 }
