@@ -84,8 +84,13 @@ real constraint.
 
 ## Next action
 
-**Record the 3-minute demo video** and put its URL in `strk20.json` (`demo_video` is
-the last empty field). Everything else the sprint asks for is in place.
+**Submission is complete.** Every field in `strk20.json` is filled: three mainnet
+transactions, the escrow address, the live URL and the demo video. Nothing is
+outstanding before the 31 Aug deadline.
+
+Remaining work is optional polish only. If time allows, the highest-value item is
+still B6 — an independent read of `contracts/src/escrow.cairo` by someone who did
+not write it, since the contract now holds real funds on mainnet.
 
 ## Why a sent payment can be unfindable, 28 Aug
 
@@ -252,6 +257,23 @@ get done first, not last.
 | B5 | Needs a funded mainnet wallet (~25–30 STRK covers three pool transactions at 6 STRK each plus gas) and an Alchemy RPC key in `apps/web/.env.local` | Open — user action |
 | B6 | Escrow contract has had **no human security review**. It holds real funds | **Accepted, not resolved, 28 Aug.** Deployed to mainnet at `0x0742e87165702505a514e20167c6b613023d96689b10b87fc197626b7fe08689` on the user's explicit instruction after the risk was stated twice. Still no independent review. Mitigations: small amounts only, and the send screen now states in-product that the contract is unaudited with no pause and no upgrade path, linking to `contracts/SECURITY.md` |
 | B7 | Calldata layout for `privacy_invoke` is written to spec, never exercised against the real pool | **Narrowed.** The encoder's output now provably deserializes into the contract signature (both suites pin the vectors), so field order, span lengths and enum indices are settled. What remains unproven is whether the *pool* accepts the surrounding action list — phase order, withdrawal leg, open-note indexing. The Dry run button settles that; needs B1 |
+
+## Demo video, 30 Aug
+
+`https://www.youtube.com/watch?v=zieAoSknAgg` — 1:57, public, verified playable
+signed out. Built from a silent screen recording: cut to the narration, kinetic
+type cards for the conceptual beats, screen recording only where it is evidence.
+
+Every cut and card beat is placed using the **word-level alignment** ElevenLabs
+returns with the audio, not a guessed fraction of each line. That is what fixed
+the picture drifting out of step with the voice. The pipeline lives in the session
+scratchpad: drop nine narration files in and one command re-times the whole film,
+so re-voicing it later (including in a human voice) costs nothing but the reading.
+
+The end card states the three transactions, the escrow address and the URL. The
+"tested, not audited" disclosure is deliberately **not** in the video — it stands
+in the app itself, on the screen where funds enter the escrow, and in
+`contracts/SECURITY.md`.
 
 ## Three mainnet transactions, all through Almoner, 28 Aug
 
