@@ -284,12 +284,19 @@ Every one succeeded. The full ledger reconciles against the chain to the last de
 | 1 | Shield 30 STRK | `0x160e255a…480ca` | 14003084 | **+24** (6 taken as fee on the way in) |
 | 2 | Fund a batch | `0x503e834e…19a0` | 14017248 | **−9** (3 to escrow, 6 fee) |
 | 3 | Claim | `0x5576f133…5e54` | 14017562 | **−5** (1 in from escrow, 6 fee) |
+| 4 | Fund a claim link | `0x6ee10fdb…09e5` | 14135591 | **−7** (1 to escrow, 6 fee) |
+
+Transaction 4 was added on 31 Aug to satisfy the hub's rule that each scored
+transaction must run **through a contract you deployed**. The shield at #1 cannot:
+it predates the escrow by ~10,000 blocks, so a strict reading left only two
+qualifying entries. #4 emits `AllocationFunded` from the escrow, giving three that
+qualify under any reading, with the shield kept since the spec says "at least three".
 
 ```
- 30 deposited − 18 fees (3 × 6) = 12 remaining
-    10 shielded + 2 unclaimed in escrow
+ 30 deposited − 24 fees (4 × 6) = 6 remaining
+     3 shielded + 3 unclaimed in escrow
 ```
-The escrow's on-chain STRK balance is exactly 2, confirming it independently.
+The escrow's on-chain STRK balance is exactly 3, confirming it independently.
 
 Measured by reading the pool's own STRK balance either side of each block, which is
 the only reliable method: the transactions are submitted by single-use privacy
